@@ -4,7 +4,7 @@ import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Users, Calendar, TrendingUp, AlertCircle, AlertTriangle, CalendarX, Banknote } from "lucide-react";
+import { Users, Calendar, TrendingUp, AlertCircle, AlertTriangle, CalendarX, Banknote, Link2, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "wouter";
 import { t, locale, formatCurrency, statusLabel } from "@/lib/i18n";
@@ -69,6 +69,10 @@ export default function Dashboard() {
     queryKey: ["alerts"],
     queryFn: () => customFetch<AlertsData>("/api/alerts"),
   });
+  const { data: me } = useQuery<{ username?: string | null }>({
+    queryKey: ["me"],
+    queryFn: () => customFetch<{ username?: string | null }>("/api/auth/me"),
+  });
 
   const allAlerts: { key: string; icon: React.ComponentType<{ className?: string }>; text: string; href: string; variant: "yellow" | "red" }[] = [];
   if (alerts) {
@@ -124,6 +128,32 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+
+        {/* Enlace público de reserva */}
+        {me?.username && (
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                  <Link2 className="h-4 w-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground mb-0.5">Tu enlace de reserva para clientes</p>
+                  <p className="text-sm font-mono truncate text-foreground">
+                    {window.location.origin}{import.meta.env.BASE_URL}u/{me.username}
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigator.clipboard.writeText(`${window.location.origin}${import.meta.env.BASE_URL}u/${me.username}`)}
+                  className="shrink-0 h-8 w-8 rounded-md border flex items-center justify-center hover:bg-muted transition-colors"
+                  title="Copiar enlace"
+                >
+                  <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Estadísticas */}
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">

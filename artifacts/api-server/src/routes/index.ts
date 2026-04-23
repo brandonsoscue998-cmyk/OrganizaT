@@ -5,11 +5,13 @@ import clientsRouter from "./clients";
 import sessionsRouter from "./sessions";
 import dashboardRouter from "./dashboard";
 import availabilityRouter from "./availability";
+import publicRouter from "./public";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(authRouter);
+router.use(publicRouter);
 router.use(clientsRouter);
 router.use(sessionsRouter);
 router.use(dashboardRouter);

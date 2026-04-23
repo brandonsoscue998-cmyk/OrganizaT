@@ -24,7 +24,22 @@ router.post("/auth/register", async (req, res): Promise<void> => {
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const [user] = await db.insert(usersTable).values({ email, name, passwordHash }).returning();
+
+  const baseSlug = name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "") || "user";
+  let username = baseSlug;
+  let counter = 1;
+  while (true) {
+    const [taken] = await db.select().from(usersTable).where(eq(usersTable.username, username));
+    if (!taken) break;
+    username = `${baseSlug}-${counter++}`;
+  }
+
+  const [user] = await db.insert(usersTable).values({ email, name, passwordHash, username }).returning();
 
   const token = signToken({ userId: user.id, email: user.email });
   res.status(201).json({
@@ -33,6 +48,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
       id: user.id,
       email: user.email,
       name: user.name,
+      username: user.username,
       createdAt: user.createdAt,
     },
   });
@@ -80,6 +96,7 @@ router.get("/auth/me", requireAuth, async (req, res): Promise<void> => {
     id: user.id,
     email: user.email,
     name: user.name,
+    username: user.username,
     createdAt: user.createdAt,
   });
 });

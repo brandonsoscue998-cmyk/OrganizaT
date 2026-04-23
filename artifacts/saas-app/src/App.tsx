@@ -11,6 +11,7 @@ import ClientDetail from "@/pages/client-detail";
 import Sessions from "@/pages/sessions";
 import SessionDetail from "@/pages/session-detail";
 import CalendarPage from "@/pages/calendar";
+import PublicBooking from "@/pages/public-booking";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -41,6 +42,7 @@ function Router() {
       <Route path="/sessions" component={Sessions} />
       <Route path="/sessions/:id" component={SessionDetail} />
       <Route path="/calendar" component={CalendarPage} />
+      <Route path="/u/:username" component={PublicBooking} />
       <Route component={NotFound} />
     </Switch>
   );
