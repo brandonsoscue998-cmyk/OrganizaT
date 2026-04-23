@@ -10,11 +10,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { Link } from "wouter";
+import { t } from "@/lib/i18n";
 
 const registerSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  name: z.string().min(2, t.auth.nameMin),
+  email: z.string().email(t.auth.emailInvalid),
+  password: z.string().min(6, t.auth.passwordMin),
 });
 
 type RegisterForm = z.infer<typeof registerSchema>;
@@ -34,7 +35,7 @@ export default function Register() {
       setLocation("/dashboard");
     } catch (err: unknown) {
       const error = err as { data?: { error?: string } };
-      setError("root", { message: error?.data?.error ?? "Registration failed" });
+      setError("root", { message: error?.data?.error ?? t.auth.registerError });
     }
   };
 
@@ -42,43 +43,46 @@ export default function Register() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="text-2xl font-bold tracking-tight">Practitioner</div>
-          <p className="text-muted-foreground text-sm mt-1">Manage your practice, clients, and revenue</p>
+          <div className="text-2xl font-bold tracking-tight">{t.app.name}</div>
+          <p className="text-muted-foreground text-sm mt-1">{t.app.tagline}</p>
         </div>
         <Card>
           <CardHeader>
-            <CardTitle>Create account</CardTitle>
-            <CardDescription>Get started by creating your practitioner account.</CardDescription>
+            <CardTitle>{t.auth.registerTitle}</CardTitle>
+            <CardDescription>{t.auth.registerDesc}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="name">Full name</Label>
+                <Label htmlFor="name">{t.auth.fullName}</Label>
                 <Input
                   id="name"
-                  placeholder="Jane Smith"
+                  placeholder={t.auth.fullNamePlaceholder}
+                  autoComplete="name"
                   {...formRegister("name")}
                   className={errors.name ? "border-destructive" : ""}
                 />
                 {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t.auth.email}</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t.auth.emailPlaceholder}
+                  autoComplete="email"
                   {...formRegister("email")}
                   className={errors.email ? "border-destructive" : ""}
                 />
                 {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t.auth.password}</Label>
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Min. 6 characters"
+                  placeholder={t.auth.passwordMinPlaceholder}
+                  autoComplete="new-password"
                   {...formRegister("password")}
                   className={errors.password ? "border-destructive" : ""}
                 />
@@ -91,13 +95,13 @@ export default function Register() {
               )}
               <Button type="submit" className="w-full" disabled={register.isPending}>
                 {register.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Create account
+                {t.auth.registerButton}
               </Button>
             </form>
             <p className="text-center text-sm text-muted-foreground mt-4">
-              Already have an account?{" "}
+              {t.auth.hasAccount}{" "}
               <Link href="/login" className="text-primary hover:underline font-medium">
-                Sign in
+                {t.auth.signIn}
               </Link>
             </p>
           </CardContent>

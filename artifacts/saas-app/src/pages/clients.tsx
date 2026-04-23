@@ -21,9 +21,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, ChevronRight, Users } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { Link } from "wouter";
+import { t } from "@/lib/i18n";
 
 const clientSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().min(1, t.clients.nameRequired),
   phone: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
 });
@@ -58,39 +59,39 @@ export default function Clients() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Clients</h1>
-            <p className="text-muted-foreground text-sm">Manage your client roster</p>
+            <h1 className="text-2xl font-bold tracking-tight">{t.clients.title}</h1>
+            <p className="text-muted-foreground text-sm">{t.clients.subtitle}</p>
           </div>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button size="sm" className="gap-2">
                 <Plus className="h-4 w-4" />
-                Add Client
+                {t.clients.addClient}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>New Client</DialogTitle>
+                <DialogTitle>{t.clients.newClient}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
                 <div className="space-y-1.5">
-                  <Label htmlFor="name">Full name</Label>
-                  <Input id="name" placeholder="Jane Smith" {...register("name")} className={errors.name ? "border-destructive" : ""} />
+                  <Label htmlFor="name">{t.clients.fullName}</Label>
+                  <Input id="name" placeholder={t.clients.fullNamePlaceholder} {...register("name")} className={errors.name ? "border-destructive" : ""} />
                   {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="phone">Phone <span className="text-muted-foreground">(optional)</span></Label>
-                  <Input id="phone" placeholder="+1 555 000 0000" {...register("phone")} />
+                  <Label htmlFor="phone">{t.clients.phone} <span className="text-muted-foreground">{t.clients.phoneOptional}</span></Label>
+                  <Input id="phone" placeholder={t.clients.phonePlaceholder} {...register("phone")} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="notes">Notes <span className="text-muted-foreground">(optional)</span></Label>
-                  <Textarea id="notes" placeholder="Any relevant information..." {...register("notes")} rows={3} />
+                  <Label htmlFor="notes">{t.clients.notes} <span className="text-muted-foreground">{t.clients.notesOptional}</span></Label>
+                  <Textarea id="notes" placeholder={t.clients.notesPlaceholder} {...register("notes")} rows={3} />
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
-                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t.clients.cancel}</Button>
                   <Button type="submit" disabled={createClient.isPending}>
                     {createClient.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                    Add Client
+                    {t.clients.add}
                   </Button>
                 </div>
               </form>
@@ -100,7 +101,7 @@ export default function Clients() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">All Clients</CardTitle>
+            <CardTitle className="text-base">{t.clients.allClients}</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {isLoading ? (
@@ -110,8 +111,8 @@ export default function Clients() {
             ) : !clients?.length ? (
               <div className="p-12 text-center">
                 <Users className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-40" />
-                <p className="text-muted-foreground text-sm font-medium">No clients yet</p>
-                <p className="text-muted-foreground text-xs mt-1">Add your first client to get started</p>
+                <p className="text-muted-foreground text-sm font-medium">{t.clients.noClients}</p>
+                <p className="text-muted-foreground text-xs mt-1">{t.clients.noClientsDesc}</p>
               </div>
             ) : (
               <div className="divide-y">
@@ -137,18 +138,16 @@ export default function Clients() {
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Delete {client.name}?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This will permanently delete this client and all their sessions.
-                          </AlertDialogDescription>
+                          <AlertDialogTitle>{t.clients.deleteTitle(client.name)}</AlertDialogTitle>
+                          <AlertDialogDescription>{t.clients.deleteDesc}</AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogCancel>{t.clients.deleteCancelled}</AlertDialogCancel>
                           <AlertDialogAction
                             className="bg-destructive hover:bg-destructive/90"
                             onClick={() => handleDelete(client.id)}
                           >
-                            Delete
+                            {t.clients.deleteConfirm}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>

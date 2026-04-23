@@ -25,10 +25,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { useEffect } from "react";
+import { t } from "@/lib/i18n";
 
 const sessionSchema = z.object({
-  clientId: z.coerce.number().min(1, "Select a client"),
-  date: z.string().min(1, "Date is required"),
+  clientId: z.coerce.number().min(1, t.sessions.clientRequired),
+  date: z.string().min(1, t.sessions.dateRequired),
   status: z.enum(["pending", "completed", "cancelled"]),
   price: z.coerce.number().min(0),
   paid: z.boolean(),
@@ -101,14 +102,14 @@ export default function SessionDetail() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Edit Session</h1>
-            <p className="text-muted-foreground text-sm">Update session details</p>
+            <h1 className="text-2xl font-bold tracking-tight">{t.sessions.editTitle}</h1>
+            <p className="text-muted-foreground text-sm">{t.sessions.editSubtitle}</p>
           </div>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Session Details</CardTitle>
+            <CardTitle className="text-base">{t.sessions.sessionDetails}</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -118,13 +119,13 @@ export default function SessionDetail() {
             ) : (
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label>Client</Label>
+                  <Label>{t.sessions.client}</Label>
                   <Select
                     value={watch("clientId") ? String(watch("clientId")) : undefined}
                     onValueChange={(v) => setValue("clientId", parseInt(v, 10), { shouldDirty: true })}
                   >
                     <SelectTrigger className={errors.clientId ? "border-destructive" : ""}>
-                      <SelectValue placeholder="Select a client" />
+                      <SelectValue placeholder={t.sessions.selectClient} />
                     </SelectTrigger>
                     <SelectContent>
                       {clients?.map(c => (
@@ -136,13 +137,13 @@ export default function SessionDetail() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="date">Date & Time</Label>
+                  <Label htmlFor="date">{t.sessions.dateTime}</Label>
                   <Input id="date" type="datetime-local" {...register("date")} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label>Status</Label>
+                    <Label>{t.sessions.status}</Label>
                     <Select
                       value={watch("status")}
                       onValueChange={(v) => setValue("status", v as "pending" | "completed" | "cancelled", { shouldDirty: true })}
@@ -151,14 +152,14 @@ export default function SessionDetail() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                        <SelectItem value="pending">{t.sessions.filterPending}</SelectItem>
+                        <SelectItem value="completed">{t.sessions.filterCompleted}</SelectItem>
+                        <SelectItem value="cancelled">{t.sessions.filterCancelled}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="price">Price ($)</Label>
+                    <Label htmlFor="price">{t.sessions.price}</Label>
                     <Input id="price" type="number" step="0.01" min="0" {...register("price")} />
                   </div>
                 </div>
@@ -169,21 +170,21 @@ export default function SessionDetail() {
                     checked={watch("paid")}
                     onCheckedChange={(v) => setValue("paid", !!v, { shouldDirty: true })}
                   />
-                  <Label htmlFor="paid">Mark as paid</Label>
+                  <Label htmlFor="paid">{t.sessions.markAsPaid}</Label>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="notes">Notes <span className="text-muted-foreground">(optional)</span></Label>
-                  <Textarea id="notes" rows={3} placeholder="Session notes..." {...register("notes")} />
+                  <Label htmlFor="notes">{t.sessions.sessionNotes} <span className="text-muted-foreground">{t.sessions.notesOptional}</span></Label>
+                  <Textarea id="notes" rows={3} placeholder={t.sessions.notesPlaceholder} {...register("notes")} />
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2">
                   <Link href="/sessions">
-                    <Button type="button" variant="outline">Cancel</Button>
+                    <Button type="button" variant="outline">{t.sessions.cancel}</Button>
                   </Link>
                   <Button type="submit" disabled={updateSession.isPending || !isDirty}>
                     {updateSession.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                    Save Changes
+                    {t.sessions.save}
                   </Button>
                 </div>
               </form>

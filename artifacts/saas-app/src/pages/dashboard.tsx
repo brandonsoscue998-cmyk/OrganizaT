@@ -1,12 +1,12 @@
 import { useGetDashboardStats, useGetMonthlyRevenue, useGetRecentSessions, getGetDashboardStatsQueryKey, getGetMonthlyRevenueQueryKey, getGetRecentSessionsQueryKey } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Users, Calendar, DollarSign, TrendingUp, AlertCircle } from "lucide-react";
+import { Users, Calendar, TrendingUp, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "wouter";
+import { t, locale, formatCurrency, statusLabel } from "@/lib/i18n";
 
 function StatCard({ title, value, icon: Icon, description, loading }: {
   title: string;
@@ -43,7 +43,7 @@ function StatusBadge({ status }: { status: string }) {
   };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${variants[status] ?? variants.pending}`}>
-      {status}
+      {statusLabel(status)}
     </span>
   );
 }
@@ -63,54 +63,54 @@ export default function Dashboard() {
     <Layout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground text-sm">Your practice at a glance</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t.dashboard.title}</h1>
+          <p className="text-muted-foreground text-sm">{t.dashboard.subtitle}</p>
         </div>
 
-        {/* Stats */}
+        {/* Estadísticas */}
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
           <StatCard
-            title="Total Clients"
+            title={t.dashboard.totalClients}
             value={stats?.totalClients ?? 0}
             icon={Users}
             loading={statsLoading}
-            description="Active clients"
+            description={t.dashboard.totalClientsDesc}
           />
           <StatCard
-            title="Sessions This Week"
+            title={t.dashboard.weeklySessions}
             value={stats?.weeklySessions ?? 0}
             icon={Calendar}
             loading={statsLoading}
-            description="Scheduled this week"
+            description={t.dashboard.weeklySessionsDesc}
           />
           <StatCard
-            title="Monthly Revenue"
-            value={`$${(stats?.monthlyRevenue ?? 0).toFixed(2)}`}
+            title={t.dashboard.monthlyRevenue}
+            value={formatCurrency(stats?.monthlyRevenue ?? 0)}
             icon={TrendingUp}
             loading={statsLoading}
-            description="Completed sessions this month"
+            description={t.dashboard.monthlyRevenueDesc}
           />
           <StatCard
-            title="Unpaid Balance"
-            value={`$${(stats?.unpaidRevenue ?? 0).toFixed(2)}`}
+            title={t.dashboard.unpaidBalance}
+            value={formatCurrency(stats?.unpaidRevenue ?? 0)}
             icon={AlertCircle}
             loading={statsLoading}
-            description="Outstanding payments"
+            description={t.dashboard.unpaidBalanceDesc}
           />
         </div>
 
-        {/* Revenue Chart */}
+        {/* Gráfico de ingresos */}
         <Card>
           <CardHeader>
-            <CardTitle>Revenue Overview</CardTitle>
-            <CardDescription>Monthly revenue from completed sessions over the last 6 months</CardDescription>
+            <CardTitle>{t.dashboard.revenueChart}</CardTitle>
+            <CardDescription>{t.dashboard.revenueChartDesc}</CardDescription>
           </CardHeader>
           <CardContent>
             {revenueLoading ? (
               <Skeleton className="h-48 w-full" />
             ) : !monthlyRevenue?.length ? (
               <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">
-                No revenue data yet. Complete sessions to see your revenue trend.
+                {t.dashboard.noRevenueData}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
@@ -123,9 +123,9 @@ export default function Dashboard() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-                  <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `$${v}`} />
+                  <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `${v}€`} />
                   <Tooltip
-                    formatter={(value: number) => [`$${value.toFixed(2)}`, "Revenue"]}
+                    formatter={(value: number) => [formatCurrency(value), t.dashboard.revenueTooltipLabel]}
                     contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "6px", fontSize: 12 }}
                   />
                   <Area
@@ -141,14 +141,14 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Recent Sessions */}
+        {/* Sesiones recientes */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Recent Sessions</CardTitle>
-              <CardDescription>Latest 10 sessions across all clients</CardDescription>
+              <CardTitle>{t.dashboard.recentSessions}</CardTitle>
+              <CardDescription>{t.dashboard.recentSessionsDesc}</CardDescription>
             </div>
-            <Link href="/sessions" className="text-sm text-primary hover:underline">View all</Link>
+            <Link href="/sessions" className="text-sm text-primary hover:underline">{t.dashboard.viewAll}</Link>
           </CardHeader>
           <CardContent>
             {sessionsLoading ? (
@@ -157,7 +157,8 @@ export default function Dashboard() {
               </div>
             ) : !recentSessions?.length ? (
               <div className="py-8 text-center text-muted-foreground text-sm">
-                No sessions yet. <Link href="/sessions" className="text-primary hover:underline">Create your first session.</Link>
+                {t.dashboard.noSessions}{" "}
+                <Link href="/sessions" className="text-primary hover:underline">{t.dashboard.createFirstSession}</Link>
               </div>
             ) : (
               <div className="divide-y">
@@ -165,16 +166,18 @@ export default function Dashboard() {
                   <Link key={session.id} href={`/sessions/${session.id}`}>
                     <div className="py-3 flex items-center justify-between hover:bg-muted/50 px-2 -mx-2 rounded-md transition-colors cursor-pointer">
                       <div className="min-w-0">
-                        <div className="font-medium text-sm truncate">{session.clientName ?? "Unknown Client"}</div>
-                        <div className="text-xs text-muted-foreground">{format(new Date(session.date), "MMM d, yyyy 'at' h:mm a")}</div>
+                        <div className="font-medium text-sm truncate">{session.clientName ?? t.sessions.unknownClient}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {format(new Date(session.date), "d MMM yyyy 'a las' HH:mm", { locale })}
+                        </div>
                       </div>
                       <div className="flex items-center gap-3 ml-4 shrink-0">
                         <StatusBadge status={session.status} />
-                        <span className="text-sm font-medium">${Number(session.price).toFixed(2)}</span>
+                        <span className="text-sm font-medium">{formatCurrency(Number(session.price))}</span>
                         {session.paid ? (
-                          <span className="text-xs text-green-600 font-medium">Paid</span>
+                          <span className="text-xs text-green-600 font-medium">{t.sessions.paid}</span>
                         ) : (
-                          <span className="text-xs text-yellow-600 font-medium">Unpaid</span>
+                          <span className="text-xs text-yellow-600 font-medium">{t.sessions.unpaid}</span>
                         )}
                       </div>
                     </div>

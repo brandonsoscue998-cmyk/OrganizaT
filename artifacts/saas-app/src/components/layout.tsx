@@ -4,6 +4,7 @@ import { useGetMe } from "@workspace/api-client-react";
 import { Users, Calendar, LayoutDashboard, LogOut, Loader2, Menu } from "lucide-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
+import { t } from "@/lib/i18n";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -34,22 +35,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    return null; // Will redirect in useEffect
+    return null;
   }
 
   const NavItems = () => (
     <>
       <Link href="/dashboard" className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${location === "/dashboard" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
         <LayoutDashboard className="h-5 w-5" />
-        Dashboard
+        {t.nav.dashboard}
       </Link>
       <Link href="/clients" className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${location.startsWith("/clients") ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
         <Users className="h-5 w-5" />
-        Clients
+        {t.nav.clients}
       </Link>
       <Link href="/sessions" className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${location.startsWith("/sessions") ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
         <Calendar className="h-5 w-5" />
-        Sessions
+        {t.nav.sessions}
       </Link>
     </>
   );
@@ -58,7 +59,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-[100dvh] flex flex-col md:flex-row bg-background">
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 border-b bg-card">
-        <div className="font-semibold text-lg tracking-tight">Practitioner</div>
+        <div className="font-semibold text-lg tracking-tight">{t.app.name}</div>
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="md:hidden">
@@ -66,7 +67,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-[240px] flex flex-col gap-4">
-            <div className="font-semibold text-lg tracking-tight mb-4">Practitioner</div>
+            <div className="font-semibold text-lg tracking-tight mb-4">{t.app.name}</div>
             <nav className="flex flex-col gap-2">
               <NavItems />
             </nav>
@@ -75,7 +76,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <div className="text-xs text-muted-foreground mb-4 truncate">{user.email}</div>
               <Button variant="outline" className="w-full justify-start gap-2" onClick={handleLogout}>
                 <LogOut className="h-4 w-4" />
-                Sign out
+                {t.nav.logout}
               </Button>
             </div>
           </SheetContent>
@@ -84,7 +85,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-64 border-r bg-card p-4">
-        <div className="font-semibold text-xl tracking-tight mb-8 px-2">Practitioner</div>
+        <div className="font-semibold text-xl tracking-tight mb-8 px-2">{t.app.name}</div>
         <nav className="flex flex-col gap-2 flex-1">
           <NavItems />
         </nav>
@@ -95,7 +96,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
           <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground" onClick={handleLogout}>
             <LogOut className="h-4 w-4" />
-            Sign out
+            {t.nav.logout}
           </Button>
         </div>
       </aside>

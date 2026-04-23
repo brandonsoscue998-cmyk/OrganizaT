@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Phone, StickyNote, Calendar } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
+import { t, locale, formatCurrency, statusLabel } from "@/lib/i18n";
 
 function StatusBadge({ status }: { status: string }) {
   const variants: Record<string, string> = {
@@ -21,7 +22,7 @@ function StatusBadge({ status }: { status: string }) {
   };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${variants[status] ?? variants.pending}`}>
-      {status}
+      {statusLabel(status)}
     </span>
   );
 }
@@ -53,14 +54,14 @@ export default function ClientDetail() {
             ) : (
               <h1 className="text-2xl font-bold tracking-tight">{client?.name}</h1>
             )}
-            <p className="text-muted-foreground text-sm">Client profile</p>
+            <p className="text-muted-foreground text-sm">{t.clients.profile}</p>
           </div>
         </div>
 
-        {/* Client Info */}
+        {/* Información de contacto */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Contact Information</CardTitle>
+            <CardTitle className="text-base">{t.clients.contactInfo}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {clientLoading ? (
@@ -76,7 +77,7 @@ export default function ClientDetail() {
                     <span>{client.phone}</span>
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No phone number</p>
+                  <p className="text-sm text-muted-foreground">{t.clients.noPhone}</p>
                 )}
                 {client?.notes ? (
                   <div className="flex items-start gap-2 text-sm">
@@ -89,14 +90,14 @@ export default function ClientDetail() {
           </CardContent>
         </Card>
 
-        {/* Sessions */}
+        {/* Sesiones */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Sessions</CardTitle>
+            <CardTitle className="text-base">{t.clients.clientSessions}</CardTitle>
             <Link href={`/sessions?clientId=${id}`}>
               <Button variant="outline" size="sm" className="gap-2">
                 <Calendar className="h-4 w-4" />
-                View all
+                {t.clients.viewAllSessions}
               </Button>
             </Link>
           </CardHeader>
@@ -108,7 +109,7 @@ export default function ClientDetail() {
             ) : !sessions?.length ? (
               <div className="py-10 text-center">
                 <Calendar className="h-8 w-8 text-muted-foreground mx-auto mb-3 opacity-40" />
-                <p className="text-muted-foreground text-sm">No sessions yet for this client</p>
+                <p className="text-muted-foreground text-sm">{t.clients.noSessionsForClient}</p>
               </div>
             ) : (
               <div className="divide-y">
@@ -116,16 +117,20 @@ export default function ClientDetail() {
                   <Link key={session.id} href={`/sessions/${session.id}`}>
                     <div className="flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors cursor-pointer">
                       <div>
-                        <div className="text-sm font-medium">{format(new Date(session.date), "EEEE, MMM d, yyyy")}</div>
-                        <div className="text-xs text-muted-foreground">{format(new Date(session.date), "h:mm a")}</div>
+                        <div className="text-sm font-medium">
+                          {format(new Date(session.date), "EEEE, d MMM yyyy", { locale })}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {format(new Date(session.date), "HH:mm", { locale })}
+                        </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <StatusBadge status={session.status} />
-                        <span className="text-sm font-medium">${Number(session.price).toFixed(2)}</span>
+                        <span className="text-sm font-medium">{formatCurrency(Number(session.price))}</span>
                         {session.paid ? (
-                          <span className="text-xs text-green-600 font-medium">Paid</span>
+                          <span className="text-xs text-green-600 font-medium">{t.sessions.paid}</span>
                         ) : (
-                          <span className="text-xs text-yellow-600 font-medium">Unpaid</span>
+                          <span className="text-xs text-yellow-600 font-medium">{t.sessions.unpaid}</span>
                         )}
                       </div>
                     </div>

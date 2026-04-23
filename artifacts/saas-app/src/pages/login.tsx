@@ -10,10 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { Link } from "wouter";
+import { t } from "@/lib/i18n";
 
 const loginSchema = z.object({
-  email: z.string().email("Enter a valid email"),
-  password: z.string().min(1, "Password is required"),
+  email: z.string().email(t.auth.emailInvalid),
+  password: z.string().min(1, t.auth.passwordRequired),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -33,7 +34,7 @@ export default function Login() {
       setLocation("/dashboard");
     } catch (err: unknown) {
       const error = err as { data?: { error?: string } };
-      setError("root", { message: error?.data?.error ?? "Login failed" });
+      setError("root", { message: error?.data?.error ?? t.auth.loginError });
     }
   };
 
@@ -41,33 +42,35 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="text-2xl font-bold tracking-tight">Practitioner</div>
-          <p className="text-muted-foreground text-sm mt-1">Manage your practice, clients, and revenue</p>
+          <div className="text-2xl font-bold tracking-tight">{t.app.name}</div>
+          <p className="text-muted-foreground text-sm mt-1">{t.app.tagline}</p>
         </div>
         <Card>
           <CardHeader>
-            <CardTitle>Sign in</CardTitle>
-            <CardDescription>Welcome back. Enter your credentials to continue.</CardDescription>
+            <CardTitle>{t.auth.loginTitle}</CardTitle>
+            <CardDescription>{t.auth.loginDesc}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t.auth.email}</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t.auth.emailPlaceholder}
+                  autoComplete="email"
                   {...register("email")}
                   className={errors.email ? "border-destructive" : ""}
                 />
                 {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t.auth.password}</Label>
                 <Input
                   id="password"
                   type="password"
-                  placeholder="••••••••"
+                  placeholder={t.auth.passwordPlaceholder}
+                  autoComplete="current-password"
                   {...register("password")}
                   className={errors.password ? "border-destructive" : ""}
                 />
@@ -80,13 +83,13 @@ export default function Login() {
               )}
               <Button type="submit" className="w-full" disabled={login.isPending}>
                 {login.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Sign in
+                {t.auth.loginButton}
               </Button>
             </form>
             <p className="text-center text-sm text-muted-foreground mt-4">
-              Don't have an account?{" "}
+              {t.auth.noAccount}{" "}
               <Link href="/register" className="text-primary hover:underline font-medium">
-                Sign up
+                {t.auth.signUp}
               </Link>
             </p>
           </CardContent>
