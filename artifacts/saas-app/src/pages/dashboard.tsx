@@ -1,12 +1,19 @@
-import { useGetDashboardStats, useGetMonthlyRevenue, useGetRecentSessions, getGetDashboardStatsQueryKey, getGetMonthlyRevenueQueryKey, getGetRecentSessionsQueryKey } from "@workspace/api-client-react";
+import { useQuery } from "@tanstack/react-query";
+import { useGetDashboardStats, useGetMonthlyRevenue, useGetRecentSessions, getGetDashboardStatsQueryKey, getGetMonthlyRevenueQueryKey, getGetRecentSessionsQueryKey, customFetch } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Users, Calendar, TrendingUp, AlertCircle } from "lucide-react";
+import { Users, Calendar, TrendingUp, AlertCircle, AlertTriangle, CalendarX, Banknote } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "wouter";
 import { t, locale, formatCurrency, statusLabel } from "@/lib/i18n";
+
+type AlertsData = {
+  lowSessions: { id: number; name: string; remainingSessions: number }[];
+  noUpcomingSessions: { id: number; name: string }[];
+  unpaidSessions: number;
+};
 
 function StatCard({ title, value, icon: Icon, description, loading }: {
   title: string;
@@ -58,6 +65,23 @@ export default function Dashboard() {
   const { data: recentSessions, isLoading: sessionsLoading } = useGetRecentSessions({
     query: { queryKey: getGetRecentSessionsQueryKey() }
   });
+  const { data: alerts, isLoading: alertsLoading } = useQuery<AlertsData>({
+    queryKey: ["alerts"],
+    queryFn: () => customFetch<AlertsData>("/api/alerts"),
+  });
+
+  const allAlerts: { key: string; icon: React.ComponentType<{ className?: string }>; text: string; href: string; variant: "yellow" | "red" }[] = [];
+  if (alerts) {
+    alerts.lowSessions.forEach(c =>
+      allAlerts.push({ key: `low-${c.id}`, icon: AlertTriangle, text: t.alerts.lowSessions(c.name, c.remainingSessions), href: `/clients/${c.id}`, variant: "yellow" })
+    );
+    alerts.noUpcomingSessions.forEach(c =>
+      allAlerts.push({ key: `noup-${c.id}`, icon: CalendarX, text: t.alerts.noUpcoming(c.name), href: `/clients/${c.id}`, variant: "yellow" })
+    );
+    if (alerts.unpaidSessions > 0) {
+      allAlerts.push({ key: "unpaid", icon: Banknote, text: t.alerts.unpaidSessions(alerts.unpaidSessions), href: "/sessions", variant: "red" });
+    }
+  }
 
   return (
     <Layout>
@@ -66,6 +90,40 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold tracking-tight">{t.dashboard.title}</h1>
           <p className="text-muted-foreground text-sm">{t.dashboard.subtitle}</p>
         </div>
+
+        {/* Alertas */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-muted-foreground" />
+              {t.alerts.title}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {alertsLoading ? (
+              <div className="space-y-2">
+                {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-9 w-full" />)}
+              </div>
+            ) : allAlerts.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t.alerts.noAlerts}</p>
+            ) : (
+              <div className="space-y-2">
+                {allAlerts.map(alert => (
+                  <Link key={alert.key} href={alert.href}>
+                    <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border text-sm cursor-pointer transition-opacity hover:opacity-80 ${
+                      alert.variant === "red"
+                        ? "bg-red-50 border-red-200 text-red-800"
+                        : "bg-yellow-50 border-yellow-200 text-yellow-800"
+                    }`}>
+                      <alert.icon className="h-4 w-4 shrink-0" />
+                      <span>{alert.text}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Estadísticas */}
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">

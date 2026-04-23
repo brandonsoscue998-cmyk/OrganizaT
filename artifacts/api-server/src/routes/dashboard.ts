@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, gte, lte, sql } from "drizzle-orm";
+import { eq, and, gte, lte, gt, inArray, sql } from "drizzle-orm";
 import { db, sessionsTable, clientsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/auth";
 
@@ -98,6 +98,54 @@ router.get("/dashboard/recent-sessions", async (req, res): Promise<void> => {
     .limit(10);
 
   res.json(rows.map(r => ({ ...r, price: Number(r.price) })));
+});
+
+router.get("/alerts", async (req, res): Promise<void> => {
+  const userId = req.user!.userId;
+  const now = new Date();
+
+  const lowSessionClients = await db
+    .select({ id: clientsTable.id, name: clientsTable.name, remainingSessions: clientsTable.remainingSessions })
+    .from(clientsTable)
+    .where(and(
+      eq(clientsTable.userId, userId),
+      gt(clientsTable.remainingSessions, 0),
+      lte(clientsTable.remainingSessions, 2),
+      gt(clientsTable.totalSessions, 0),
+    ));
+
+  const clientsWithUpcoming = await db
+    .selectDistinct({ clientId: sessionsTable.clientId })
+    .from(sessionsTable)
+    .where(and(eq(sessionsTable.userId, userId), gt(sessionsTable.date, now)));
+
+  const clientsWithAny = await db
+    .selectDistinct({ clientId: sessionsTable.clientId })
+    .from(sessionsTable)
+    .where(eq(sessionsTable.userId, userId));
+
+  const upcomingSet = new Set(clientsWithUpcoming.map(r => r.clientId));
+  const noUpcomingIds = clientsWithAny
+    .filter(r => !upcomingSet.has(r.clientId))
+    .map(r => r.clientId);
+
+  const noUpcomingSessions = noUpcomingIds.length > 0
+    ? await db
+        .select({ id: clientsTable.id, name: clientsTable.name })
+        .from(clientsTable)
+        .where(and(eq(clientsTable.userId, userId), inArray(clientsTable.id, noUpcomingIds)))
+    : [];
+
+  const [unpaidRow] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(sessionsTable)
+    .where(and(eq(sessionsTable.userId, userId), eq(sessionsTable.paid, false)));
+
+  res.json({
+    lowSessions: lowSessionClients,
+    noUpcomingSessions,
+    unpaidSessions: Number(unpaidRow.count),
+  });
 });
 
 export default router;

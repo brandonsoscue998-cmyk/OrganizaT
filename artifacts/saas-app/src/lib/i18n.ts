@@ -50,6 +50,14 @@ export const t = {
     passwordMin: "La contraseña debe tener al menos 6 caracteres",
   },
 
+  alerts: {
+    title: "Alertas",
+    noAlerts: "Todo al día. Sin alertas pendientes.",
+    lowSessions: (name: string, count: number) => `${name} tiene solo ${count} sesión${count === 1 ? "" : "es"} restante${count === 1 ? "" : "s"}`,
+    noUpcoming: (name: string) => `${name} no tiene sesiones futuras programadas`,
+    unpaidSessions: (count: number) => `Tienes ${count} sesión${count === 1 ? "" : "es"} sin cobrar`,
+  },
+
   dashboard: {
     title: "Panel",
     subtitle: "Resumen de tu consulta",
