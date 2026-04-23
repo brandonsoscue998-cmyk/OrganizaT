@@ -20,8 +20,21 @@ export const t = {
     dashboard: "Panel",
     clients: "Clientes",
     sessions: "Sesiones",
+    today: "Hoy",
     logout: "Cerrar sesión",
     calendar: "Calendario",
+  },
+
+  today: {
+    title: "Hoy",
+    subtitle: "Sesiones del día de hoy",
+    noSessions: "No tienes sesiones hoy",
+    noSessionsDesc: "Disfruta tu día libre o añade sesiones desde la sección Sesiones.",
+    markPaid: "Cobrar",
+    paid: "Cobrado",
+    delete: "Eliminar",
+    deletedSuccess: "Sesión eliminada",
+    markedPaid: "Sesión marcada como cobrada",
   },
 
   auth: {
