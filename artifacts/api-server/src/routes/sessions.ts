@@ -145,6 +145,7 @@ router.patch("/sessions/:id", async (req, res): Promise<void> => {
   if (parsed.data.price !== undefined) updateData.price = String(parsed.data.price);
   if (parsed.data.paid !== undefined) updateData.paid = parsed.data.paid;
   if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes;
+  if (parsed.data.status === "completed") updateData.paid = true;
 
   const [session] = await db
     .update(sessionsTable)

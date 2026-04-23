@@ -193,6 +193,7 @@ export const t = {
     createdSuccess: "Sesión registrada",
     markedPaid: "Sesión marcada como pagada",
     markedUnpaid: "Sesión marcada como no pagada",
+    completedAndPaid: "Clase completada y marcada como pagada automáticamente",
     markPaidButton: "Marcar como pagada",
     paidButton: "Pagada",
     deleteTitle: "¿Eliminar esta sesión?",

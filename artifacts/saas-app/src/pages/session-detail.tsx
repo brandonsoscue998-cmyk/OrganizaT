@@ -25,6 +25,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { t } from "@/lib/i18n";
 
 const sessionSchema = z.object({
@@ -54,6 +55,7 @@ export default function SessionDetail() {
   });
   const { data: clients } = useListClients({});
   const updateSession = useUpdateSession();
+  const { toast } = useToast();
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors, isDirty } } = useForm<SessionForm>({
     resolver: zodResolver(sessionSchema),
@@ -89,6 +91,9 @@ export default function SessionDetail() {
     queryClient.invalidateQueries({ queryKey: getGetDashboardStatsQueryKey() });
     queryClient.invalidateQueries({ queryKey: getGetRecentSessionsQueryKey() });
     queryClient.invalidateQueries({ queryKey: getGetMonthlyRevenueQueryKey() });
+    if (data.status === "completed") {
+      toast({ title: t.sessions.completedAndPaid });
+    }
     setLocation("/sessions");
   };
 
@@ -120,6 +125,7 @@ export default function SessionDetail() {
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div className="space-y-1.5">
                   <Label>{t.sessions.client}</Label>
+                  <input type="hidden" {...register("clientId", { valueAsNumber: true })} />
                   <Select
                     value={watch("clientId") ? String(watch("clientId")) : undefined}
                     onValueChange={(v) => setValue("clientId", parseInt(v, 10), { shouldDirty: true })}
@@ -146,7 +152,10 @@ export default function SessionDetail() {
                     <Label>{t.sessions.status}</Label>
                     <Select
                       value={watch("status")}
-                      onValueChange={(v) => setValue("status", v as "pending" | "completed" | "cancelled", { shouldDirty: true })}
+                      onValueChange={(v) => {
+                        setValue("status", v as "pending" | "completed" | "cancelled", { shouldDirty: true });
+                        if (v === "completed") setValue("paid", true, { shouldDirty: true });
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue />
