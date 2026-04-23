@@ -59,6 +59,14 @@ export default function Today() {
     toast({ title: t.today.markedPaid });
   };
 
+  const handleComplete = async (id: number) => {
+    await updateSession.mutateAsync({ id, data: { status: "completed" } });
+    queryClient.invalidateQueries({ queryKey: getListSessionsQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetDashboardStatsQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetRecentSessionsQueryKey() });
+    toast({ title: t.today.completedSuccess });
+  };
+
   const handleDelete = async (id: number) => {
     await deleteSession.mutateAsync({ id });
     queryClient.invalidateQueries({ queryKey: getListSessionsQueryKey() });
@@ -93,9 +101,9 @@ export default function Today() {
               return (
                 <div
                   key={s.id}
-                  className="flex items-center gap-3 bg-card rounded-xl border px-4 py-3 shadow-sm"
+                  className={`flex items-center gap-3 rounded-xl border px-4 py-3 shadow-sm transition-colors ${s.status === "completed" ? "bg-green-50 border-green-200" : "bg-card"}`}
                 >
-                  <div className="text-lg font-bold tabular-nums text-primary w-14 shrink-0">
+                  <div className={`text-lg font-bold tabular-nums w-14 shrink-0 ${s.status === "completed" ? "text-green-700" : "text-primary"}`}>
                     {time}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -115,16 +123,28 @@ export default function Today() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {!s.paid && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 text-xs px-3 text-green-700 border-green-200 hover:bg-green-50"
-                        onClick={() => handleMarkPaid(s.id)}
-                        disabled={updateSession.isPending}
-                      >
-                        {t.today.markPaid}
-                      </Button>
+                    {s.status !== "completed" && (
+                      <>
+                        <Button
+                          size="sm"
+                          className="h-8 text-xs px-3 bg-green-600 hover:bg-green-700 text-white"
+                          onClick={() => handleComplete(s.id)}
+                          disabled={updateSession.isPending}
+                        >
+                          {t.today.complete}
+                        </Button>
+                        {!s.paid && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs px-3 text-green-700 border-green-200 hover:bg-green-50"
+                            onClick={() => handleMarkPaid(s.id)}
+                            disabled={updateSession.isPending}
+                          >
+                            {t.today.markPaid}
+                          </Button>
+                        )}
+                      </>
                     )}
                     <Button
                       size="sm"

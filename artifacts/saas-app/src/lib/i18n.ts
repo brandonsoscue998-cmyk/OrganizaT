@@ -32,6 +32,8 @@ export const t = {
     noSessionsDesc: "Disfruta tu día libre o añade sesiones desde la sección Sesiones.",
     markPaid: "Cobrar",
     paid: "Cobrado",
+    complete: "Completar",
+    completedSuccess: "Sesión completada y pagada",
     delete: "Eliminar",
     deletedSuccess: "Sesión eliminada",
     markedPaid: "Sesión marcada como cobrada",
