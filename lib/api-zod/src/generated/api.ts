@@ -168,6 +168,7 @@ export const ListSessionsResponseItem = zod.object({
   price: zod.number(),
   paid: zod.boolean(),
   notes: zod.string().nullish(),
+  source: zod.enum(["manual", "booking"]),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -202,6 +203,7 @@ export const GetSessionResponse = zod.object({
   price: zod.number(),
   paid: zod.boolean(),
   notes: zod.string().nullish(),
+  source: zod.enum(["manual", "booking"]),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -232,6 +234,7 @@ export const UpdateSessionResponse = zod.object({
   price: zod.number(),
   paid: zod.boolean(),
   notes: zod.string().nullish(),
+  source: zod.enum(["manual", "booking"]),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -279,9 +282,59 @@ export const GetRecentSessionsResponseItem = zod.object({
   price: zod.number(),
   paid: zod.boolean(),
   notes: zod.string().nullish(),
+  source: zod.enum(["manual", "booking"]),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
 export const GetRecentSessionsResponse = zod.array(
   GetRecentSessionsResponseItem,
 );
+
+/**
+ * @summary List availability slots
+ */
+export const ListAvailabilityQueryParams = zod.object({
+  from: zod.coerce.string().optional(),
+  to: zod.coerce.string().optional(),
+});
+
+export const ListAvailabilityResponseItem = zod.object({
+  id: zod.number(),
+  userId: zod.number(),
+  date: zod.string(),
+  startTime: zod.string(),
+  endTime: zod.string(),
+  isBooked: zod.boolean(),
+  sessionId: zod.number().nullish(),
+  clientName: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const ListAvailabilityResponse = zod.array(ListAvailabilityResponseItem);
+
+/**
+ * @summary Create an availability slot
+ */
+export const CreateAvailabilityBody = zod.object({
+  date: zod.string(),
+  startTime: zod.string(),
+  endTime: zod.string(),
+});
+
+/**
+ * @summary Delete an availability slot
+ */
+export const DeleteAvailabilityParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Book an availability slot
+ */
+export const BookAvailabilityParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const BookAvailabilityBody = zod.object({
+  clientId: zod.number(),
+  price: zod.number().optional(),
+});

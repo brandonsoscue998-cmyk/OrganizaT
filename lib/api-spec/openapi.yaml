@@ -17,6 +17,8 @@ tags:
     description: Session management
   - name: dashboard
     description: Dashboard statistics
+  - name: availability
+    description: Trainer availability and booking
 paths:
   /healthz:
     get:
@@ -406,6 +408,127 @@ paths:
                 items:
                   $ref: "#/components/schemas/Session"
 
+  /availability:
+    get:
+      operationId: listAvailability
+      tags: [availability]
+      summary: List availability slots
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of availability slots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AvailabilitySlot"
+    post:
+      operationId: createAvailability
+      tags: [availability]
+      summary: Create an availability slot
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAvailabilityBody"
+      responses:
+        "201":
+          description: Slot created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AvailabilitySlot"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /availability/{id}:
+    delete:
+      operationId: deleteAvailability
+      tags: [availability]
+      summary: Delete an availability slot
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "400":
+          description: Cannot delete booked slot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /availability/{id}/book:
+    post:
+      operationId: bookAvailability
+      tags: [availability]
+      summary: Book an availability slot
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookAvailabilityBody"
+      responses:
+        "201":
+          description: Session created from booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "400":
+          description: Slot already booked or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Slot not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -582,6 +705,9 @@ components:
           type: boolean
         notes:
           type: ["string", "null"]
+        source:
+          type: string
+          enum: [manual, booking]
         createdAt:
           type: string
           format: date-time
@@ -596,6 +722,7 @@ components:
         - status
         - price
         - paid
+        - source
         - createdAt
         - updatedAt
 
@@ -671,3 +798,58 @@ components:
         - month
         - revenue
         - sessions
+
+    AvailabilitySlot:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        date:
+          type: string
+        startTime:
+          type: string
+        endTime:
+          type: string
+        isBooked:
+          type: boolean
+        sessionId:
+          type: ["integer", "null"]
+        clientName:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - date
+        - startTime
+        - endTime
+        - isBooked
+        - createdAt
+
+    CreateAvailabilityBody:
+      type: object
+      properties:
+        date:
+          type: string
+        startTime:
+          type: string
+        endTime:
+          type: string
+      required:
+        - date
+        - startTime
+        - endTime
+
+    BookAvailabilityBody:
+      type: object
+      properties:
+        clientId:
+          type: integer
+        price:
+          type: number
+      required:
+        - clientId

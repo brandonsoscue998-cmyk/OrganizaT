@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
 import { useGetMe } from "@workspace/api-client-react";
-import { Users, Calendar, LayoutDashboard, LogOut, Loader2, Menu } from "lucide-react";
+import { Users, Calendar, LayoutDashboard, LogOut, Loader2, Menu, CalendarDays } from "lucide-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { t } from "@/lib/i18n";
@@ -51,6 +51,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <Link href="/sessions" className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${location.startsWith("/sessions") ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
         <Calendar className="h-5 w-5" />
         {t.nav.sessions}
+      </Link>
+      <Link href="/calendar" className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${location.startsWith("/calendar") ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
+        <CalendarDays className="h-5 w-5" />
+        {t.nav.calendar}
       </Link>
     </>
   );

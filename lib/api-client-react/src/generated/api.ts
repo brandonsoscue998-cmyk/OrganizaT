@@ -18,12 +18,16 @@ import type {
 
 import type {
   AuthResponse,
+  AvailabilitySlot,
+  BookAvailabilityBody,
   Client,
+  CreateAvailabilityBody,
   CreateClientBody,
   CreateSessionBody,
   DashboardStats,
   ErrorResponse,
   HealthStatus,
+  ListAvailabilityParams,
   ListSessionsParams,
   LoginBody,
   MonthlyRevenue,
@@ -1431,3 +1435,357 @@ export function useGetRecentSessions<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List availability slots
+ */
+export const getListAvailabilityUrl = (params?: ListAvailabilityParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/availability?${stringifiedParams}`
+    : `/api/availability`;
+};
+
+export const listAvailability = async (
+  params?: ListAvailabilityParams,
+  options?: RequestInit,
+): Promise<AvailabilitySlot[]> => {
+  return customFetch<AvailabilitySlot[]>(getListAvailabilityUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAvailabilityQueryKey = (
+  params?: ListAvailabilityParams,
+) => {
+  return [`/api/availability`, ...(params ? [params] : [])] as const;
+};
+
+export const getListAvailabilityQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAvailability>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListAvailabilityParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAvailability>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListAvailabilityQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listAvailability>>
+  > = ({ signal }) => listAvailability(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAvailability>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAvailabilityQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAvailability>>
+>;
+export type ListAvailabilityQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List availability slots
+ */
+
+export function useListAvailability<
+  TData = Awaited<ReturnType<typeof listAvailability>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListAvailabilityParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAvailability>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAvailabilityQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create an availability slot
+ */
+export const getCreateAvailabilityUrl = () => {
+  return `/api/availability`;
+};
+
+export const createAvailability = async (
+  createAvailabilityBody: CreateAvailabilityBody,
+  options?: RequestInit,
+): Promise<AvailabilitySlot> => {
+  return customFetch<AvailabilitySlot>(getCreateAvailabilityUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createAvailabilityBody),
+  });
+};
+
+export const getCreateAvailabilityMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAvailability>>,
+    TError,
+    { data: BodyType<CreateAvailabilityBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createAvailability>>,
+  TError,
+  { data: BodyType<CreateAvailabilityBody> },
+  TContext
+> => {
+  const mutationKey = ["createAvailability"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createAvailability>>,
+    { data: BodyType<CreateAvailabilityBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createAvailability(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateAvailabilityMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createAvailability>>
+>;
+export type CreateAvailabilityMutationBody = BodyType<CreateAvailabilityBody>;
+export type CreateAvailabilityMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Create an availability slot
+ */
+export const useCreateAvailability = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAvailability>>,
+    TError,
+    { data: BodyType<CreateAvailabilityBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createAvailability>>,
+  TError,
+  { data: BodyType<CreateAvailabilityBody> },
+  TContext
+> => {
+  return useMutation(getCreateAvailabilityMutationOptions(options));
+};
+
+/**
+ * @summary Delete an availability slot
+ */
+export const getDeleteAvailabilityUrl = (id: number) => {
+  return `/api/availability/${id}`;
+};
+
+export const deleteAvailability = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteAvailabilityUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteAvailabilityMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteAvailability>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteAvailability>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteAvailability"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteAvailability>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteAvailability(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteAvailabilityMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteAvailability>>
+>;
+
+export type DeleteAvailabilityMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Delete an availability slot
+ */
+export const useDeleteAvailability = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteAvailability>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteAvailability>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteAvailabilityMutationOptions(options));
+};
+
+/**
+ * @summary Book an availability slot
+ */
+export const getBookAvailabilityUrl = (id: number) => {
+  return `/api/availability/${id}/book`;
+};
+
+export const bookAvailability = async (
+  id: number,
+  bookAvailabilityBody: BookAvailabilityBody,
+  options?: RequestInit,
+): Promise<Session> => {
+  return customFetch<Session>(getBookAvailabilityUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(bookAvailabilityBody),
+  });
+};
+
+export const getBookAvailabilityMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof bookAvailability>>,
+    TError,
+    { id: number; data: BodyType<BookAvailabilityBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof bookAvailability>>,
+  TError,
+  { id: number; data: BodyType<BookAvailabilityBody> },
+  TContext
+> => {
+  const mutationKey = ["bookAvailability"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof bookAvailability>>,
+    { id: number; data: BodyType<BookAvailabilityBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return bookAvailability(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type BookAvailabilityMutationResult = NonNullable<
+  Awaited<ReturnType<typeof bookAvailability>>
+>;
+export type BookAvailabilityMutationBody = BodyType<BookAvailabilityBody>;
+export type BookAvailabilityMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Book an availability slot
+ */
+export const useBookAvailability = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof bookAvailability>>,
+    TError,
+    { id: number; data: BodyType<BookAvailabilityBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof bookAvailability>>,
+  TError,
+  { id: number; data: BodyType<BookAvailabilityBody> },
+  TContext
+> => {
+  return useMutation(getBookAvailabilityMutationOptions(options));
+};

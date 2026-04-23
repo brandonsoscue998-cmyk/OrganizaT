@@ -1,0 +1,16 @@
+import { pgTable, text, serial, timestamp, integer, boolean } from "drizzle-orm/pg-core";
+import { usersTable } from "./users";
+
+export const availabilityTable = pgTable("availability", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  date: text("date").notNull(),
+  startTime: text("start_time").notNull(),
+  endTime: text("end_time").notNull(),
+  isBooked: boolean("is_booked").notNull().default(false),
+  sessionId: integer("session_id"),
+  clientName: text("client_name"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type Availability = typeof availabilityTable.$inferSelect;

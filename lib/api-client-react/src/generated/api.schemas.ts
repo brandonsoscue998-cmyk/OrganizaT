@@ -86,6 +86,13 @@ export const SessionStatus = {
   cancelled: "cancelled",
 } as const;
 
+export type SessionSource = (typeof SessionSource)[keyof typeof SessionSource];
+
+export const SessionSource = {
+  manual: "manual",
+  booking: "booking",
+} as const;
+
 export interface Session {
   id: number;
   userId: number;
@@ -98,6 +105,7 @@ export interface Session {
   paid: boolean;
   /** @nullable */
   notes?: string | null;
+  source: SessionSource;
   createdAt: string;
   updatedAt: string;
 }
@@ -154,9 +162,39 @@ export interface MonthlyRevenue {
   sessions: number;
 }
 
+export interface AvailabilitySlot {
+  id: number;
+  userId: number;
+  date: string;
+  startTime: string;
+  endTime: string;
+  isBooked: boolean;
+  /** @nullable */
+  sessionId?: number | null;
+  /** @nullable */
+  clientName?: string | null;
+  createdAt: string;
+}
+
+export interface CreateAvailabilityBody {
+  date: string;
+  startTime: string;
+  endTime: string;
+}
+
+export interface BookAvailabilityBody {
+  clientId: number;
+  price?: number;
+}
+
 export type ListSessionsParams = {
   /**
    * @nullable
    */
   clientId?: number | null;
+};
+
+export type ListAvailabilityParams = {
+  from?: string;
+  to?: string;
 };
