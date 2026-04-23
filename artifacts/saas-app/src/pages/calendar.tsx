@@ -11,17 +11,17 @@ import {
   getListClientsQueryKey,
   getGetDashboardStatsQueryKey,
 } from "@workspace/api-client-react";
-import { startOfWeek, endOfWeek, addWeeks, eachDayOfInterval, format, isToday } from "date-fns";
+import { startOfWeek, endOfWeek, addWeeks, eachDayOfInterval, format, isToday, startOfDay } from "date-fns";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, ChevronLeft, ChevronRight, Trash2, Clock, Loader2, CalendarDays } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Trash2, Clock, Loader2, Check, X } from "lucide-react";
 import { locale, formatCurrency, t } from "@/lib/i18n";
 
 function toISODate(d: Date) {
@@ -34,6 +34,8 @@ function weekRange(base: Date) {
   return { start, end, days: eachDayOfInterval({ start, end }) };
 }
 
+type InlineFormState = { startTime: string; endTime: string; error: string | null; loading: boolean };
+
 export default function Calendar() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -43,12 +45,8 @@ export default function Calendar() {
   const from = toISODate(start);
   const to = toISODate(end);
 
-  const [addOpen, setAddOpen] = useState(false);
-  const [newDate, setNewDate] = useState(toISODate(new Date()));
-  const [newStart, setNewStart] = useState("09:00");
-  const [newEnd, setNewEnd] = useState("10:00");
-  const [addError, setAddError] = useState<string | null>(null);
-  const [addLoading, setAddLoading] = useState(false);
+  // Per-day inline add forms: key = YYYY-MM-DD
+  const [inlineForms, setInlineForms] = useState<Record<string, InlineFormState>>({});
 
   const [bookSlotId, setBookSlotId] = useState<number | null>(null);
   const [bookClientId, setBookClientId] = useState<string>("");
@@ -78,25 +76,42 @@ export default function Calendar() {
     queryClient.invalidateQueries({ queryKey: getGetDashboardStatsQueryKey() });
   };
 
-  const handleCreate = async () => {
-    setAddError(null);
-    if (newEnd <= newStart) {
-      setAddError("La hora de fin debe ser posterior a la de inicio");
+  const openInline = (dateKey: string) => {
+    setInlineForms(prev => ({
+      ...prev,
+      [dateKey]: { startTime: "09:00", endTime: "10:00", error: null, loading: false },
+    }));
+  };
+
+  const closeInline = (dateKey: string) => {
+    setInlineForms(prev => {
+      const next = { ...prev };
+      delete next[dateKey];
+      return next;
+    });
+  };
+
+  const updateInline = (dateKey: string, patch: Partial<InlineFormState>) => {
+    setInlineForms(prev => ({ ...prev, [dateKey]: { ...prev[dateKey], ...patch } }));
+  };
+
+  const handleInlineSave = async (dateKey: string) => {
+    const form = inlineForms[dateKey];
+    if (!form) return;
+    if (form.endTime <= form.startTime) {
+      updateInline(dateKey, { error: "La hora de fin debe ser posterior a la de inicio" });
       return;
     }
-    setAddLoading(true);
+    updateInline(dateKey, { error: null, loading: true });
     try {
-      await createAvailability.mutateAsync({ data: { date: newDate, startTime: newStart, endTime: newEnd } });
+      await createAvailability.mutateAsync({ data: { date: dateKey, startTime: form.startTime, endTime: form.endTime } });
       queryClient.invalidateQueries({ queryKey: getListAvailabilityQueryKey({ from, to }) });
       toast({ title: t.calendar.slotCreated });
-      setAddOpen(false);
-      setNewStart("09:00");
-      setNewEnd("10:00");
+      closeInline(dateKey);
     } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setAddError(msg ?? "Error al crear la disponibilidad");
-    } finally {
-      setAddLoading(false);
+      const raw = e as { response?: { data?: { error?: string } }; message?: string };
+      const msg = raw?.response?.data?.error ?? raw?.message ?? "Error al guardar";
+      updateInline(dateKey, { error: msg, loading: false });
     }
   };
 
@@ -132,10 +147,8 @@ export default function Calendar() {
 
   const slotsByDay = (day: Date) => {
     const key = toISODate(day);
-    return (slots ?? []).filter(s => s.date === key);
+    return (slots ?? []).filter(s => s.date === key).sort((a, b) => a.startTime.localeCompare(b.startTime));
   };
-
-  const totalSlots = slots?.length ?? 0;
 
   const weekLabel = `${format(start, "d MMM", { locale })} – ${format(end, "d MMM yyyy", { locale })}`;
 
@@ -143,48 +156,9 @@ export default function Calendar() {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-start justify-between flex-wrap gap-3">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">{t.calendar.title}</h1>
-            <p className="text-muted-foreground text-sm">{t.calendar.subtitle}</p>
-          </div>
-          <Dialog open={addOpen} onOpenChange={(v) => { setAddOpen(v); setAddError(null); }}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="gap-2">
-                <Plus className="h-4 w-4" />
-                {t.calendar.addSlot}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-sm">
-              <DialogHeader>
-                <DialogTitle>{t.calendar.newSlotTitle}</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 mt-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="newDate">{t.calendar.date}</Label>
-                  <Input id="newDate" type="date" value={newDate} onChange={e => setNewDate(e.target.value)} />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="newStart">{t.calendar.startTime}</Label>
-                    <Input id="newStart" type="time" value={newStart} onChange={e => setNewStart(e.target.value)} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="newEnd">{t.calendar.endTime}</Label>
-                    <Input id="newEnd" type="time" value={newEnd} onChange={e => setNewEnd(e.target.value)} />
-                  </div>
-                </div>
-                {addError && <p className="text-xs text-destructive">{addError}</p>}
-                <div className="flex justify-end gap-2 pt-1">
-                  <Button variant="outline" onClick={() => setAddOpen(false)}>{t.calendar.cancel}</Button>
-                  <Button onClick={handleCreate} disabled={addLoading}>
-                    {addLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                    {t.calendar.createSlot}
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">{t.calendar.title}</h1>
+          <p className="text-muted-foreground text-sm">{t.calendar.subtitle}</p>
         </div>
 
         {/* Week Navigation */}
@@ -201,86 +175,154 @@ export default function Calendar() {
           </Button>
         </div>
 
-        {/* Week Grid */}
+        {/* Week Grid — always shows all 7 days */}
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
-            {[...Array(7)].map((_, i) => <Skeleton key={i} className="h-32" />)}
+            {[...Array(7)].map((_, i) => <Skeleton key={i} className="h-40" />)}
           </div>
-        ) : totalSlots === 0 ? (
-          <Card>
-            <CardContent className="py-14 text-center">
-              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                <CalendarDays className="h-8 w-8 text-muted-foreground opacity-50" />
-              </div>
-              <p className="font-semibold text-sm mb-1">{t.calendar.noSlots}</p>
-              <p className="text-muted-foreground text-xs mb-5 max-w-xs mx-auto">{t.calendar.noSlotsDesc}</p>
-              <Button size="sm" onClick={() => setAddOpen(true)} className="gap-2">
-                <Plus className="h-4 w-4" />
-                {t.calendar.addSlot}
-              </Button>
-            </CardContent>
-          </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
             {days.map(day => {
+              const dateKey = toISODate(day);
               const daySlots = slotsByDay(day);
               const dayName = format(day, "EEE", { locale });
               const dayNum = format(day, "d MMM", { locale });
-              const today = isToday(day);
+              const todayDay = isToday(day);
+              const pastDay = startOfDay(day) < startOfDay(new Date()) && !todayDay;
+              const inlineForm = inlineForms[dateKey];
+
               return (
-                <div key={toISODate(day)} className="flex flex-col gap-2">
-                  <div className={`text-center py-1 rounded-md text-xs font-medium ${today ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
+                <div key={dateKey} className="flex flex-col gap-1.5">
+                  {/* Day header */}
+                  <div className={`text-center py-1.5 rounded-md text-xs font-semibold ${
+                    todayDay
+                      ? "bg-primary text-primary-foreground"
+                      : pastDay
+                        ? "bg-muted/50 text-muted-foreground/60"
+                        : "bg-muted/80 text-foreground"
+                  }`}>
                     <div className="capitalize">{dayName}</div>
-                    <div className={today ? "text-primary-foreground/80" : ""}>{dayNum}</div>
+                    <div className={`text-[11px] ${todayDay ? "text-primary-foreground/80" : "text-muted-foreground"}`}>{dayNum}</div>
                   </div>
-                  {daySlots.length === 0 ? (
-                    <div className="border border-dashed rounded-lg h-16 flex items-center justify-center">
-                      <span className="text-xs text-muted-foreground/50">—</span>
+
+                  {/* Slots */}
+                  {daySlots.length === 0 && !inlineForm ? (
+                    <div className="border border-dashed rounded-lg py-3 px-2 text-center">
+                      <p className="text-[11px] text-muted-foreground/60 mb-2">No hay horarios</p>
+                      {!pastDay && (
+                        <button
+                          onClick={() => openInline(dateKey)}
+                          className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline font-medium"
+                        >
+                          <Plus className="h-3 w-3" />
+                          Añadir horario
+                        </button>
+                      )}
                     </div>
                   ) : (
-                    daySlots.map(slot => (
-                      <Card key={slot.id} className={`text-xs ${slot.isBooked ? "bg-green-50 border-green-200" : "bg-blue-50 border-blue-200"}`}>
-                        <CardContent className="p-2 space-y-1.5">
-                          <div className="flex items-center gap-1 text-muted-foreground font-medium">
-                            <Clock className="h-3 w-3 shrink-0" />
-                            <span>{slot.startTime} – {slot.endTime}</span>
-                          </div>
-                          {slot.isBooked ? (
-                            <>
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200">
-                                {t.calendar.booked}
-                              </span>
-                              {slot.clientName && (
-                                <p className="text-muted-foreground truncate">{slot.clientName}</p>
-                              )}
-                            </>
-                          ) : (
-                            <>
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
-                                {t.calendar.available}
-                              </span>
-                              <div className="flex gap-1 pt-0.5">
-                                <Button
-                                  size="sm"
-                                  className="h-6 text-xs px-2 flex-1"
-                                  onClick={() => { setBookSlotId(slot.id); setBookClientId(""); setBookPrice("0"); }}
-                                >
-                                  {t.calendar.book}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                    <>
+                      {daySlots.map(slot => (
+                        <Card key={slot.id} className={`text-xs ${slot.isBooked ? "bg-green-50 border-green-200" : "bg-blue-50 border-blue-200"}`}>
+                          <CardContent className="p-2 space-y-1.5">
+                            <div className="flex items-center justify-between gap-1">
+                              <div className="flex items-center gap-1 text-muted-foreground font-medium min-w-0">
+                                <Clock className="h-3 w-3 shrink-0" />
+                                <span className="truncate">{slot.startTime} – {slot.endTime}</span>
+                              </div>
+                              {!slot.isBooked && (
+                                <button
                                   onClick={() => handleDelete(slot.id)}
+                                  className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                                  title={t.calendar.deleteSlot}
                                 >
                                   <Trash2 className="h-3 w-3" />
-                                </Button>
+                                </button>
+                              )}
+                            </div>
+                            {slot.isBooked ? (
+                              <div className="space-y-1">
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700 border border-green-200">
+                                  {t.calendar.booked}
+                                </span>
+                                {slot.clientName && (
+                                  <p className="text-muted-foreground truncate text-[11px]">{slot.clientName}</p>
+                                )}
                               </div>
-                            </>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))
+                            ) : (
+                              <Button
+                                size="sm"
+                                className="h-6 text-[11px] px-2 w-full"
+                                onClick={() => { setBookSlotId(slot.id); setBookClientId(""); setBookPrice("0"); }}
+                              >
+                                {t.calendar.book}
+                              </Button>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+
+                      {/* Add more button (when slots exist) */}
+                      {!inlineForm && !pastDay && (
+                        <button
+                          onClick={() => openInline(dateKey)}
+                          className="flex items-center gap-1 text-[11px] text-primary hover:underline font-medium px-1 py-0.5"
+                        >
+                          <Plus className="h-3 w-3" />
+                          Añadir horario
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  {/* Inline add form */}
+                  {inlineForm && (
+                    <div className="border border-primary/30 rounded-lg bg-primary/5 p-2 space-y-2">
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground mb-0.5 block">{t.calendar.startTime}</Label>
+                          <Input
+                            type="time"
+                            value={inlineForm.startTime}
+                            onChange={e => updateInline(dateKey, { startTime: e.target.value })}
+                            className="h-7 text-xs px-1.5"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground mb-0.5 block">{t.calendar.endTime}</Label>
+                          <Input
+                            type="time"
+                            value={inlineForm.endTime}
+                            onChange={e => updateInline(dateKey, { endTime: e.target.value })}
+                            className="h-7 text-xs px-1.5"
+                          />
+                        </div>
+                      </div>
+                      {inlineForm.error && (
+                        <p className="text-[10px] text-destructive leading-tight">{inlineForm.error}</p>
+                      )}
+                      <div className="flex gap-1.5">
+                        <Button
+                          size="sm"
+                          className="h-6 text-[11px] flex-1 gap-1 px-2"
+                          onClick={() => handleInlineSave(dateKey)}
+                          disabled={inlineForm.loading}
+                        >
+                          {inlineForm.loading
+                            ? <Loader2 className="h-3 w-3 animate-spin" />
+                            : <Check className="h-3 w-3" />
+                          }
+                          {t.calendar.createSlot}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0 text-muted-foreground"
+                          onClick={() => closeInline(dateKey)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
                   )}
                 </div>
               );
@@ -289,7 +331,7 @@ export default function Calendar() {
         )}
       </div>
 
-      {/* Book Dialog */}
+      {/* Book Dialog — unchanged */}
       <Dialog open={bookSlotId !== null} onOpenChange={open => { if (!open) setBookSlotId(null); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
