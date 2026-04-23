@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   useListSessions,
   useCreateSession,
+  useUpdateSession,
   useListClients,
   useDeleteSession,
   getListSessionsQueryKey,
@@ -76,7 +77,19 @@ export default function Sessions() {
   const { data: sessions, isLoading } = useListSessions(undefined, { query: { queryKey: getListSessionsQueryKey() } });
   const { data: clients } = useListClients({ query: { queryKey: getListClientsQueryKey() } });
   const createSession = useCreateSession();
+  const updateSession = useUpdateSession();
   const deleteSession = useDeleteSession();
+
+  const togglePaid = async (session: { id: number; paid: boolean }) => {
+    const newPaid = !session.paid;
+    queryClient.setQueryData(getListSessionsQueryKey(), (old: typeof sessions) =>
+      old?.map(s => s.id === session.id ? { ...s, paid: newPaid } : s)
+    );
+    await updateSession.mutateAsync({ id: session.id, data: { paid: newPaid } });
+    queryClient.invalidateQueries({ queryKey: getListSessionsQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetDashboardStatsQueryKey() });
+    toast({ title: newPaid ? t.sessions.markedPaid : t.sessions.markedUnpaid });
+  };
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<SessionForm>({
     resolver: zodResolver(sessionSchema),
@@ -334,9 +347,22 @@ export default function Sessions() {
                       <StatusBadge status={session.status} />
                       <span className="text-sm font-semibold">{formatCurrency(Number(session.price))}</span>
                       {session.paid ? (
-                        <span className="text-xs text-green-600 font-medium">{t.sessions.paid}</span>
+                        <button
+                          onClick={() => togglePaid(session)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200 hover:bg-green-200 transition-colors cursor-pointer"
+                        >
+                          <svg className="h-3 w-3" viewBox="0 0 12 12" fill="currentColor">
+                            <path fillRule="evenodd" d="M10.28 2.28a.75.75 0 0 1 0 1.06l-5.5 5.5a.75.75 0 0 1-1.06 0l-2.5-2.5a.75.75 0 1 1 1.06-1.06L4.25 7.19l4.97-4.97a.75.75 0 0 1 1.06.06Z" clipRule="evenodd" />
+                          </svg>
+                          {t.sessions.paidButton}
+                        </button>
                       ) : (
-                        <span className="text-xs text-yellow-600 font-medium">{t.sessions.unpaid}</span>
+                        <button
+                          onClick={() => togglePaid(session)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200 hover:bg-yellow-100 transition-colors cursor-pointer whitespace-nowrap"
+                        >
+                          {t.sessions.markPaidButton}
+                        </button>
                       )}
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
