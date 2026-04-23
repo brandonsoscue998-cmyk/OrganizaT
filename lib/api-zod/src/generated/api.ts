@@ -307,6 +307,8 @@ export const ListAvailabilityResponseItem = zod.object({
   isBooked: zod.boolean(),
   sessionId: zod.number().nullish(),
   clientName: zod.string().nullish(),
+  isRecurring: zod.boolean(),
+  weekday: zod.number().nullish(),
   createdAt: zod.coerce.date(),
 });
 export const ListAvailabilityResponse = zod.array(ListAvailabilityResponseItem);
@@ -318,6 +320,7 @@ export const CreateAvailabilityBody = zod.object({
   date: zod.string(),
   startTime: zod.string(),
   endTime: zod.string(),
+  isRecurring: zod.boolean().optional(),
 });
 
 /**

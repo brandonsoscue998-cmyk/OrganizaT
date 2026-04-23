@@ -34,7 +34,7 @@ router.post("/availability", async (req, res): Promise<void> => {
     return;
   }
 
-  const { date, startTime, endTime } = parsed.data;
+  const { date, startTime, endTime, isRecurring } = parsed.data;
 
   if (endTime <= startTime) {
     res.status(400).json({ error: "La hora de fin debe ser posterior a la de inicio" });
@@ -44,6 +44,29 @@ router.post("/availability", async (req, res): Promise<void> => {
   const today = new Date().toISOString().split("T")[0];
   if (date < today) {
     res.status(400).json({ error: "No puedes crear disponibilidad en el pasado" });
+    return;
+  }
+
+  if (isRecurring) {
+    const weekday = new Date(`${date}T12:00:00`).getDay();
+    const created: (typeof availabilityTable.$inferSelect)[] = [];
+    for (let w = 0; w < 26; w++) {
+      const d = new Date(`${date}T12:00:00`);
+      d.setDate(d.getDate() + w * 7);
+      const dateStr = d.toISOString().split("T")[0];
+      const existing = await db
+        .select()
+        .from(availabilityTable)
+        .where(and(eq(availabilityTable.userId, req.user!.userId), eq(availabilityTable.date, dateStr)));
+      if (!existing.some(s => startTime < s.endTime && endTime > s.startTime)) {
+        const [slot] = await db
+          .insert(availabilityTable)
+          .values({ userId: req.user!.userId, date: dateStr, startTime, endTime, isRecurring: true, weekday })
+          .returning();
+        created.push(slot);
+      }
+    }
+    res.status(201).json(created[0]);
     return;
   }
 
@@ -86,6 +109,21 @@ router.delete("/availability/:id", async (req, res): Promise<void> => {
 
   if (slot.isBooked) {
     res.status(400).json({ error: "No puedes eliminar un slot ya reservado" });
+    return;
+  }
+
+  if (slot.isRecurring && slot.weekday !== null) {
+    await db.delete(availabilityTable).where(
+      and(
+        eq(availabilityTable.userId, req.user!.userId),
+        eq(availabilityTable.weekday, slot.weekday!),
+        eq(availabilityTable.startTime, slot.startTime),
+        eq(availabilityTable.endTime, slot.endTime),
+        eq(availabilityTable.isBooked, false),
+        eq(availabilityTable.isRecurring, true),
+      )
+    );
+    res.sendStatus(204);
     return;
   }
 

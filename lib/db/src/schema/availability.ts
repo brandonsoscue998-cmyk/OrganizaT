@@ -10,6 +10,8 @@ export const availabilityTable = pgTable("availability", {
   isBooked: boolean("is_booked").notNull().default(false),
   sessionId: integer("session_id"),
   clientName: text("client_name"),
+  isRecurring: boolean("is_recurring").notNull().default(false),
+  weekday: integer("weekday"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

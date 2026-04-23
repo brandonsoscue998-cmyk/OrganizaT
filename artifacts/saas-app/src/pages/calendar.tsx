@@ -21,7 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, ChevronLeft, ChevronRight, Trash2, Clock, Loader2, Check, X } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Trash2, Clock, Loader2, Check, X, RefreshCw } from "lucide-react";
 import { locale, formatCurrency, t } from "@/lib/i18n";
 
 function toISODate(d: Date) {
@@ -34,7 +34,7 @@ function weekRange(base: Date) {
   return { start, end, days: eachDayOfInterval({ start, end }) };
 }
 
-type InlineFormState = { startTime: string; endTime: string; error: string | null; loading: boolean };
+type InlineFormState = { startTime: string; endTime: string; recurring: boolean; error: string | null; loading: boolean };
 
 export default function Calendar() {
   const queryClient = useQueryClient();
@@ -79,7 +79,7 @@ export default function Calendar() {
   const openInline = (dateKey: string) => {
     setInlineForms(prev => ({
       ...prev,
-      [dateKey]: { startTime: "09:00", endTime: "10:00", error: null, loading: false },
+      [dateKey]: { startTime: "09:00", endTime: "10:00", recurring: false, error: null, loading: false },
     }));
   };
 
@@ -104,9 +104,9 @@ export default function Calendar() {
     }
     updateInline(dateKey, { error: null, loading: true });
     try {
-      await createAvailability.mutateAsync({ data: { date: dateKey, startTime: form.startTime, endTime: form.endTime } });
+      await createAvailability.mutateAsync({ data: { date: dateKey, startTime: form.startTime, endTime: form.endTime, isRecurring: form.recurring } });
       queryClient.invalidateQueries({ queryKey: getListAvailabilityQueryKey({ from, to }) });
-      toast({ title: t.calendar.slotCreated });
+      toast({ title: form.recurring ? t.calendar.recurringCreated : t.calendar.slotCreated });
       closeInline(dateKey);
     } catch (e: unknown) {
       const raw = e as { response?: { data?: { error?: string } }; message?: string };
@@ -115,10 +115,17 @@ export default function Calendar() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: number, isRecurring: boolean) => {
+    if (isRecurring) {
+      if (!window.confirm(t.calendar.deleteRecurringConfirm)) return;
+    }
     await deleteAvailability.mutateAsync({ id });
-    queryClient.invalidateQueries({ queryKey: getListAvailabilityQueryKey({ from, to }) });
-    toast({ title: t.calendar.slotDeleted });
+    if (isRecurring) {
+      queryClient.invalidateQueries({ queryKey: getListAvailabilityQueryKey() });
+    } else {
+      queryClient.invalidateQueries({ queryKey: getListAvailabilityQueryKey({ from, to }) });
+    }
+    toast({ title: isRecurring ? t.calendar.recurringDeleted : t.calendar.slotDeleted });
   };
 
   const handleBook = async () => {
@@ -228,10 +235,13 @@ export default function Calendar() {
                               <div className="flex items-center gap-1 text-muted-foreground font-medium min-w-0">
                                 <Clock className="h-3 w-3 shrink-0" />
                                 <span className="truncate">{slot.startTime} – {slot.endTime}</span>
+                                {slot.isRecurring && (
+                                  <RefreshCw className="h-2.5 w-2.5 shrink-0 text-primary/60" title={t.calendar.recurringBadge} />
+                                )}
                               </div>
                               {!slot.isBooked && (
                                 <button
-                                  onClick={() => handleDelete(slot.id)}
+                                  onClick={() => handleDelete(slot.id, slot.isRecurring)}
                                   className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
                                   title={t.calendar.deleteSlot}
                                 >
@@ -297,6 +307,15 @@ export default function Calendar() {
                           />
                         </div>
                       </div>
+                      <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={inlineForm.recurring}
+                          onChange={e => updateInline(dateKey, { recurring: e.target.checked })}
+                          className="h-3 w-3 accent-primary"
+                        />
+                        <span className="text-[10px] text-muted-foreground">{t.calendar.recurringLabel}</span>
+                      </label>
                       {inlineForm.error && (
                         <p className="text-[10px] text-destructive leading-tight">{inlineForm.error}</p>
                       )}

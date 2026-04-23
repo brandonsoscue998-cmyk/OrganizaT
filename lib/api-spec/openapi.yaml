@@ -818,6 +818,10 @@ components:
           type: ["integer", "null"]
         clientName:
           type: ["string", "null"]
+        isRecurring:
+          type: boolean
+        weekday:
+          type: ["integer", "null"]
         createdAt:
           type: string
           format: date-time
@@ -828,6 +832,7 @@ components:
         - startTime
         - endTime
         - isBooked
+        - isRecurring
         - createdAt
 
     CreateAvailabilityBody:
@@ -839,6 +844,8 @@ components:
           type: string
         endTime:
           type: string
+        isRecurring:
+          type: boolean
       required:
         - date
         - startTime

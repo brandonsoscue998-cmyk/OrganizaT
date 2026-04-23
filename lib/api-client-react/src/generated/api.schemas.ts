@@ -173,6 +173,9 @@ export interface AvailabilitySlot {
   sessionId?: number | null;
   /** @nullable */
   clientName?: string | null;
+  isRecurring: boolean;
+  /** @nullable */
+  weekday?: number | null;
   createdAt: string;
 }
 
@@ -180,6 +183,7 @@ export interface CreateAvailabilityBody {
   date: string;
   startTime: string;
   endTime: string;
+  isRecurring?: boolean;
 }
 
 export interface BookAvailabilityBody {
