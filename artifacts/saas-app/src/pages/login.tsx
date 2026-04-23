@@ -31,7 +31,7 @@ export default function Login() {
     try {
       const result = await login.mutateAsync({ data });
       setToken(result.token);
-      setLocation("/dashboard");
+      setLocation(result.user.role === "client" ? "/client" : "/dashboard");
     } catch (err: unknown) {
       const error = err as { data?: { error?: string } };
       setError("root", { message: error?.data?.error ?? t.auth.loginError });

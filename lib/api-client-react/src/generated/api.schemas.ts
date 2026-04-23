@@ -13,11 +13,20 @@ export interface ErrorResponse {
   error: string;
 }
 
+export type RegisterBodyRole =
+  (typeof RegisterBodyRole)[keyof typeof RegisterBodyRole];
+
+export const RegisterBodyRole = {
+  trainer: "trainer",
+  client: "client",
+} as const;
+
 export interface RegisterBody {
   email: string;
   /** @minLength 6 */
   password: string;
   name: string;
+  role?: RegisterBodyRole;
 }
 
 export interface LoginBody {
@@ -25,10 +34,19 @@ export interface LoginBody {
   password: string;
 }
 
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];
+
+export const UserRole = {
+  trainer: "trainer",
+  client: "client",
+} as const;
+
 export interface User {
   id: number;
   email: string;
   name: string;
+  username?: string;
+  role: UserRole;
   createdAt: string;
 }
 

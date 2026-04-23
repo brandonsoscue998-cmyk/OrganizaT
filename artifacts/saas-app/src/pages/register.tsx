@@ -16,6 +16,7 @@ const registerSchema = z.object({
   name: z.string().min(2, t.auth.nameMin),
   email: z.string().email(t.auth.emailInvalid),
   password: z.string().min(6, t.auth.passwordMin),
+  role: z.enum(["trainer", "client"]).default("trainer"),
 });
 
 type RegisterForm = z.infer<typeof registerSchema>;
@@ -24,15 +25,18 @@ export default function Register() {
   const [, setLocation] = useLocation();
   const register = useRegister();
 
-  const { register: formRegister, handleSubmit, formState: { errors }, setError } = useForm<RegisterForm>({
+  const { register: formRegister, handleSubmit, watch, setValue, formState: { errors }, setError } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
+    defaultValues: { role: "trainer" },
   });
+
+  const selectedRole = watch("role");
 
   const onSubmit = async (data: RegisterForm) => {
     try {
       const result = await register.mutateAsync({ data });
       setToken(result.token);
-      setLocation("/dashboard");
+      setLocation(result.user.role === "client" ? "/client" : "/dashboard");
     } catch (err: unknown) {
       const error = err as { data?: { error?: string } };
       setError("root", { message: error?.data?.error ?? t.auth.registerError });
@@ -87,6 +91,24 @@ export default function Register() {
                   className={errors.password ? "border-destructive" : ""}
                 />
                 {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t.auth.roleLabel}</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: "trainer", label: t.auth.roleTrainer },
+                    { value: "client", label: t.auth.roleClient },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setValue("role", opt.value as "trainer" | "client")}
+                      className={`rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors text-center ${selectedRole === opt.value ? "border-primary bg-primary/5 text-primary" : "border-input hover:bg-muted text-muted-foreground"}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
               {errors.root && (
                 <div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2">

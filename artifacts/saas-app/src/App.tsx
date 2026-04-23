@@ -12,6 +12,7 @@ import Sessions from "@/pages/sessions";
 import SessionDetail from "@/pages/session-detail";
 import CalendarPage from "@/pages/calendar";
 import TodayPage from "@/pages/today";
+import ClientBook from "@/pages/client-book";
 import PublicBooking from "@/pages/public-booking";
 import NotFound from "@/pages/not-found";
 
@@ -44,6 +45,7 @@ function Router() {
       <Route path="/sessions/:id" component={SessionDetail} />
       <Route path="/hoy" component={TodayPage} />
       <Route path="/calendar" component={CalendarPage} />
+      <Route path="/client" component={ClientBook} />
       <Route path="/u/:username" component={PublicBooking} />
       <Route component={NotFound} />
     </Switch>

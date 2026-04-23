@@ -63,6 +63,25 @@ export const t = {
     passwordRequired: "La contraseña es obligatoria",
     nameMin: "El nombre debe tener al menos 2 caracteres",
     passwordMin: "La contraseña debe tener al menos 6 caracteres",
+    roleLabel: "¿Cómo vas a usar la app?",
+    roleTrainer: "Soy entrenador",
+    roleClient: "Soy cliente",
+  },
+
+  clientView: {
+    title: "Reservar sesión",
+    subtitle: "Busca a tu entrenador y elige un horario",
+    trainerLabel: "Usuario del entrenador",
+    trainerPlaceholder: "nombre-entrenador",
+    findButton: "Buscar",
+    notFound: "No se encontró ningún entrenador con ese usuario.",
+    noSlots: "No hay horarios disponibles esta semana.",
+    book: "Reservar",
+    phonePlaceholder: "Teléfono (opcional)",
+    bookingSuccess: "¡Reserva confirmada!",
+    bookingSuccessDesc: (date: string) => `Tu sesión del ${date} ha sido reservada.`,
+    newBooking: "Hacer otra reserva",
+    logout: "Cerrar sesión",
   },
 
   alerts: {

@@ -15,7 +15,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     return;
   }
 
-  const { email, password, name } = parsed.data;
+  const { email, password, name, role } = parsed.data;
 
   const [existing] = await db.select().from(usersTable).where(eq(usersTable.email, email));
   if (existing) {
@@ -39,7 +39,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     username = `${baseSlug}-${counter++}`;
   }
 
-  const [user] = await db.insert(usersTable).values({ email, name, passwordHash, username }).returning();
+  const [user] = await db.insert(usersTable).values({ email, name, passwordHash, username, role: role ?? "trainer" }).returning();
 
   const token = signToken({ userId: user.id, email: user.email });
   res.status(201).json({
@@ -49,6 +49,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
       email: user.email,
       name: user.name,
       username: user.username,
+      role: user.role,
       createdAt: user.createdAt,
     },
   });
@@ -81,6 +82,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
       id: user.id,
       email: user.email,
       name: user.name,
+      role: user.role,
       createdAt: user.createdAt,
     },
   });
@@ -97,6 +99,7 @@ router.get("/auth/me", requireAuth, async (req, res): Promise<void> => {
     email: user.email,
     name: user.name,
     username: user.username,
+    role: user.role,
     createdAt: user.createdAt,
   });
 });
