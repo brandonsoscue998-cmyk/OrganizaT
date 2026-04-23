@@ -274,24 +274,31 @@ export default function ClientDetail() {
               <div className="divide-y">
                 {sessions.map(session => (
                   <Link key={session.id} href={`/sessions/${session.id}`}>
-                    <div className="flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors cursor-pointer">
-                      <div>
-                        <div className="text-sm font-medium">
-                          {format(new Date(session.date), "EEEE, d MMM yyyy", { locale })}
+                    <div className="px-6 py-3 hover:bg-muted/30 transition-colors cursor-pointer">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm font-medium">
+                            {format(new Date(session.date), "EEEE, d MMM yyyy", { locale })}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {format(new Date(session.date), "HH:mm", { locale })}
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {format(new Date(session.date), "HH:mm", { locale })}
+                        <div className="flex items-center gap-3">
+                          <StatusBadge status={session.status} />
+                          <span className="text-sm font-medium">{formatCurrency(Number(session.price))}</span>
+                          {session.paid ? (
+                            <span className="text-xs text-green-600 font-medium">{t.sessions.paid}</span>
+                          ) : (
+                            <span className="text-xs text-yellow-600 font-medium">{t.sessions.unpaid}</span>
+                          )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <StatusBadge status={session.status} />
-                        <span className="text-sm font-medium">{formatCurrency(Number(session.price))}</span>
-                        {session.paid ? (
-                          <span className="text-xs text-green-600 font-medium">{t.sessions.paid}</span>
-                        ) : (
-                          <span className="text-xs text-yellow-600 font-medium">{t.sessions.unpaid}</span>
-                        )}
-                      </div>
+                      {session.notes && (
+                        <p className="mt-1.5 text-xs text-muted-foreground italic line-clamp-2">
+                          {session.notes}
+                        </p>
+                      )}
                     </div>
                   </Link>
                 ))}

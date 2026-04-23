@@ -331,19 +331,20 @@ export default function Sessions() {
             ) : (
               <div className="divide-y">
                 {filtered.map(session => (
-                  <div key={session.id} className="flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors group">
-                    <Link href={`/sessions/${session.id}`} className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 cursor-pointer">
-                        <div className="min-w-0">
-                          <div className="font-medium text-sm group-hover:text-primary transition-colors">{session.clientName ?? t.sessions.unknownClient}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {format(new Date(session.date), "d MMM yyyy 'a las' HH:mm", { locale })}
+                  <div key={session.id} className="px-6 py-3 hover:bg-muted/30 transition-colors group">
+                    <div className="flex items-center justify-between">
+                      <Link href={`/sessions/${session.id}`} className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 cursor-pointer">
+                          <div className="min-w-0">
+                            <div className="font-medium text-sm group-hover:text-primary transition-colors">{session.clientName ?? t.sessions.unknownClient}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {format(new Date(session.date), "d MMM yyyy 'a las' HH:mm", { locale })}
+                            </div>
                           </div>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                         </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                      </div>
-                    </Link>
-                    <div className="flex items-center gap-3 ml-4 shrink-0">
+                      </Link>
+                      <div className="flex items-center gap-3 ml-4 shrink-0">
                       <StatusBadge status={session.status} />
                       <span className="text-sm font-semibold">{formatCurrency(Number(session.price))}</span>
                       {session.paid ? (
@@ -383,7 +384,13 @@ export default function Sessions() {
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
+                      </div>
                     </div>
+                    {session.notes && (
+                      <p className="mt-1.5 text-xs text-muted-foreground italic line-clamp-2 pl-0">
+                        {session.notes}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
