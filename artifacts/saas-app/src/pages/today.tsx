@@ -76,6 +76,11 @@ export default function Today() {
 
   const todayLabel = format(now, "EEEE, d 'de' MMMM", { locale: es });
 
+  const totalCount = todaySessions.length;
+  const completedCount = todaySessions.filter(s => s.status === "completed").length;
+  const paidCount = todaySessions.filter(s => s.paid).length;
+  const pendingCount = todaySessions.filter(s => s.status === "pending").length;
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -83,6 +88,18 @@ export default function Today() {
           <h1 className="text-2xl font-bold tracking-tight capitalize">{todayLabel}</h1>
           <p className="text-muted-foreground text-sm">{t.today.subtitle}</p>
         </div>
+
+        {!isLoading && totalCount > 0 && (
+          <div className="rounded-xl border bg-card px-4 py-3 text-sm text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
+            <span className="font-semibold text-foreground">{totalCount} {totalCount === 1 ? "sesión" : "sesiones"}</span>
+            <span>·</span>
+            <span><span className="font-medium text-green-700">{paidCount}</span> pagadas</span>
+            <span>·</span>
+            <span><span className="font-medium text-yellow-700">{pendingCount}</span> pendientes</span>
+            <span>·</span>
+            <span><span className="font-medium text-green-600">{completedCount}</span> completadas</span>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="space-y-3">
