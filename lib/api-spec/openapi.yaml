@@ -500,6 +500,12 @@ components:
           type: ["string", "null"]
         notes:
           type: ["string", "null"]
+        totalSessions:
+          type: integer
+        remainingSessions:
+          type: integer
+        packPrice:
+          type: number
         createdAt:
           type: string
           format: date-time
@@ -510,6 +516,9 @@ components:
         - id
         - userId
         - name
+        - totalSessions
+        - remainingSessions
+        - packPrice
         - createdAt
         - updatedAt
 
@@ -522,6 +531,12 @@ components:
           type: ["string", "null"]
         notes:
           type: ["string", "null"]
+        totalSessions:
+          type: integer
+          minimum: 0
+        packPrice:
+          type: number
+          minimum: 0
       required:
         - name
 
@@ -534,6 +549,15 @@ components:
           type: ["string", "null"]
         notes:
           type: ["string", "null"]
+        totalSessions:
+          type: integer
+          minimum: 0
+        remainingSessions:
+          type: integer
+          minimum: 0
+        packPrice:
+          type: number
+          minimum: 0
 
     Session:
       type: object
@@ -595,7 +619,6 @@ components:
       required:
         - clientId
         - date
-        - price
 
     UpdateSessionBody:
       type: object

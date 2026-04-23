@@ -25,7 +25,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Trash2, Calendar, ChevronRight, Loader2 } from "lucide-react";
+import { Plus, Trash2, Calendar, ChevronRight, Loader2, Package } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { t, locale, formatCurrency, statusLabel } from "@/lib/i18n";
@@ -34,7 +34,7 @@ const sessionSchema = z.object({
   clientId: z.coerce.number().min(1, t.sessions.clientRequired),
   date: z.string().min(1, t.sessions.dateRequired),
   status: z.enum(["pending", "completed", "cancelled"]).default("pending"),
-  price: z.coerce.number().min(0, t.sessions.priceMin),
+  price: z.coerce.number().min(0, t.sessions.priceMin).default(0),
   paid: z.boolean().default(false),
   notes: z.string().optional().nullable(),
 });
@@ -82,8 +82,16 @@ export default function Sessions() {
       date: toLocalDateTimeString(new Date()),
       status: "pending",
       paid: false,
+      price: 0,
     },
   });
+
+  const watchedClientId = watch("clientId");
+  const selectedClient = clients?.find(c => c.id === Number(watchedClientId));
+  const packActive = !!selectedClient && selectedClient.totalSessions > 0 && selectedClient.remainingSessions > 0;
+  const autoPrice = packActive
+    ? Number(selectedClient.packPrice) / selectedClient.totalSessions
+    : null;
 
   const onSubmit = async (data: SessionForm) => {
     await createSession.mutateAsync({
@@ -91,12 +99,13 @@ export default function Sessions() {
         clientId: data.clientId,
         date: new Date(data.date).toISOString(),
         status: data.status,
-        price: data.price,
+        price: packActive ? (autoPrice ?? 0) : data.price,
         paid: data.paid,
         notes: data.notes ?? null,
       }
     });
     queryClient.invalidateQueries({ queryKey: getListSessionsQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
     queryClient.invalidateQueries({ queryKey: getGetDashboardStatsQueryKey() });
     queryClient.invalidateQueries({ queryKey: getGetRecentSessionsQueryKey() });
     queryClient.invalidateQueries({ queryKey: getGetMonthlyRevenueQueryKey() });
@@ -142,12 +151,29 @@ export default function Sessions() {
                     </SelectTrigger>
                     <SelectContent>
                       {clients?.map(c => (
-                        <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                        <SelectItem key={c.id} value={String(c.id)}>
+                          <span className="flex items-center gap-2">
+                            {c.name}
+                            {c.totalSessions > 0 && (
+                              <span className={`text-xs px-1.5 py-0.5 rounded-full ${c.remainingSessions === 0 ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"}`}>
+                                {c.remainingSessions === 0 ? t.clients.packExhausted : `${c.remainingSessions}/${c.totalSessions}`}
+                              </span>
+                            )}
+                          </span>
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   {errors.clientId && <p className="text-xs text-destructive">{errors.clientId.message}</p>}
                 </div>
+
+                {packActive && selectedClient && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-xs">
+                    <Package className="h-3.5 w-3.5 shrink-0" />
+                    <span>{t.sessions.packRemainingHint(selectedClient.remainingSessions, selectedClient.totalSessions)}</span>
+                  </div>
+                )}
+
                 <div className="space-y-1.5">
                   <Label htmlFor="date">{t.sessions.dateTime}</Label>
                   <Input id="date" type="datetime-local" {...register("date")} className={errors.date ? "border-destructive" : ""} />
@@ -169,8 +195,36 @@ export default function Sessions() {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="price">{t.sessions.price}</Label>
-                    <Input id="price" type="number" step="0.01" min="0" placeholder={t.sessions.pricePlaceholder} {...register("price")} className={errors.price ? "border-destructive" : ""} />
-                    {errors.price && <p className="text-xs text-destructive">{errors.price.message}</p>}
+                    {packActive && autoPrice !== null ? (
+                      <div className="relative">
+                        <Input
+                          id="price"
+                          type="text"
+                          value={formatCurrency(autoPrice)}
+                          disabled
+                          className="bg-muted text-muted-foreground cursor-not-allowed"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-blue-600 font-medium pointer-events-none">
+                          Auto
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <Input
+                          id="price"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder={t.sessions.pricePlaceholder}
+                          {...register("price")}
+                          className={errors.price ? "border-destructive" : ""}
+                        />
+                        {errors.price && <p className="text-xs text-destructive">{errors.price.message}</p>}
+                      </>
+                    )}
+                    {packActive && autoPrice !== null && (
+                      <p className="text-xs text-blue-600">{t.sessions.priceAutoHint(formatCurrency(autoPrice))}</p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -197,7 +251,6 @@ export default function Sessions() {
           </Dialog>
         </div>
 
-        {/* Filtros */}
         <div className="flex gap-2 flex-wrap">
           {filterOptions.map(opt => (
             <Button

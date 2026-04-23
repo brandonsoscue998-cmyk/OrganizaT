@@ -33,13 +33,16 @@ A full-stack SaaS application for independent practitioners (coaches, therapists
 ### Clients
 - Create, list, delete clients
 - Fields: name, phone (optional), notes (optional)
+- Session pack fields: totalSessions, packPrice (set at creation; remainingSessions auto-initialized)
+- Client list shows "X / Y sesiones" badge (blue) or "Pack agotado" (red) when pack is active
 - Client detail view with their sessions
 
 ### Sessions
 - Create, list, update, delete sessions
 - Fields: client, date/time, status (pending/completed/cancelled), price, paid, notes
 - Filter by status on sessions list
-- Link sessions to clients
+- **Session pack logic (backend-enforced)**: if client has remainingSessions > 0, price = packPrice / totalSessions and remainingSessions is decremented; otherwise manual price is used
+- Session form: price input disabled with "Auto" label when pack is active; blue info banner shows remaining sessions
 
 ### Dashboard
 - Total clients, weekly sessions, monthly revenue, unpaid balance stats
@@ -49,7 +52,7 @@ A full-stack SaaS application for independent practitioners (coaches, therapists
 ## Database Schema
 
 - `users` — id, email, name, password_hash, timestamps
-- `clients` — id, user_id (FK), name, phone, notes, timestamps
+- `clients` — id, user_id (FK), name, phone, notes, total_sessions, remaining_sessions, pack_price, timestamps
 - `sessions` — id, user_id (FK), client_id (FK), date, status, price, paid, notes, timestamps
 
 ## Key Commands

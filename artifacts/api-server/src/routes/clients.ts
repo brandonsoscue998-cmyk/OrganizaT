@@ -20,7 +20,7 @@ router.get("/clients", async (req, res): Promise<void> => {
     .from(clientsTable)
     .where(eq(clientsTable.userId, req.user!.userId))
     .orderBy(clientsTable.name);
-  res.json(clients);
+  res.json(clients.map(c => ({ ...c, packPrice: Number(c.packPrice) })));
 });
 
 router.post("/clients", async (req, res): Promise<void> => {
@@ -30,12 +30,29 @@ router.post("/clients", async (req, res): Promise<void> => {
     return;
   }
 
+  const { totalSessions = 0, packPrice = 0, ...rest } = parsed.data;
+
+  if (totalSessions < 0) {
+    res.status(400).json({ error: "totalSessions must be >= 0" });
+    return;
+  }
+  if (packPrice < 0) {
+    res.status(400).json({ error: "packPrice must be >= 0" });
+    return;
+  }
+
   const [client] = await db
     .insert(clientsTable)
-    .values({ ...parsed.data, userId: req.user!.userId })
+    .values({
+      ...rest,
+      userId: req.user!.userId,
+      totalSessions,
+      remainingSessions: totalSessions,
+      packPrice: String(packPrice),
+    })
     .returning();
 
-  res.status(201).json(client);
+  res.status(201).json({ ...client, packPrice: Number(client.packPrice) });
 });
 
 router.get("/clients/:id", async (req, res): Promise<void> => {
@@ -56,7 +73,7 @@ router.get("/clients/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  res.json(client);
+  res.json({ ...client, packPrice: Number(client.packPrice) });
 });
 
 router.patch("/clients/:id", async (req, res): Promise<void> => {
@@ -73,9 +90,30 @@ router.patch("/clients/:id", async (req, res): Promise<void> => {
     return;
   }
 
+  if (parsed.data.totalSessions !== undefined && parsed.data.totalSessions < 0) {
+    res.status(400).json({ error: "totalSessions must be >= 0" });
+    return;
+  }
+  if (parsed.data.remainingSessions !== undefined && parsed.data.remainingSessions < 0) {
+    res.status(400).json({ error: "remainingSessions must be >= 0" });
+    return;
+  }
+  if (parsed.data.packPrice !== undefined && parsed.data.packPrice < 0) {
+    res.status(400).json({ error: "packPrice must be >= 0" });
+    return;
+  }
+
+  const updateData: Record<string, unknown> = {};
+  if (parsed.data.name !== undefined) updateData.name = parsed.data.name;
+  if (parsed.data.phone !== undefined) updateData.phone = parsed.data.phone;
+  if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes;
+  if (parsed.data.totalSessions !== undefined) updateData.totalSessions = parsed.data.totalSessions;
+  if (parsed.data.remainingSessions !== undefined) updateData.remainingSessions = parsed.data.remainingSessions;
+  if (parsed.data.packPrice !== undefined) updateData.packPrice = String(parsed.data.packPrice);
+
   const [client] = await db
     .update(clientsTable)
-    .set(parsed.data)
+    .set(updateData)
     .where(and(eq(clientsTable.id, params.data.id), eq(clientsTable.userId, req.user!.userId)))
     .returning();
 
@@ -84,7 +122,7 @@ router.patch("/clients/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  res.json(client);
+  res.json({ ...client, packPrice: Number(client.packPrice) });
 });
 
 router.delete("/clients/:id", async (req, res): Promise<void> => {

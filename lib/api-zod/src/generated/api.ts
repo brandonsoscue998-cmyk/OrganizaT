@@ -63,6 +63,9 @@ export const ListClientsResponseItem = zod.object({
   name: zod.string(),
   phone: zod.string().nullish(),
   notes: zod.string().nullish(),
+  totalSessions: zod.number(),
+  remainingSessions: zod.number(),
+  packPrice: zod.number(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -71,10 +74,16 @@ export const ListClientsResponse = zod.array(ListClientsResponseItem);
 /**
  * @summary Create a client
  */
+export const createClientBodyTotalSessionsMin = 0;
+
+export const createClientBodyPackPriceMin = 0;
+
 export const CreateClientBody = zod.object({
   name: zod.string(),
   phone: zod.string().nullish(),
   notes: zod.string().nullish(),
+  totalSessions: zod.number().min(createClientBodyTotalSessionsMin).optional(),
+  packPrice: zod.number().min(createClientBodyPackPriceMin).optional(),
 });
 
 /**
@@ -90,6 +99,9 @@ export const GetClientResponse = zod.object({
   name: zod.string(),
   phone: zod.string().nullish(),
   notes: zod.string().nullish(),
+  totalSessions: zod.number(),
+  remainingSessions: zod.number(),
+  packPrice: zod.number(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -101,10 +113,22 @@ export const UpdateClientParams = zod.object({
   id: zod.coerce.number(),
 });
 
+export const updateClientBodyTotalSessionsMin = 0;
+
+export const updateClientBodyRemainingSessionsMin = 0;
+
+export const updateClientBodyPackPriceMin = 0;
+
 export const UpdateClientBody = zod.object({
   name: zod.string().optional(),
   phone: zod.string().nullish(),
   notes: zod.string().nullish(),
+  totalSessions: zod.number().min(updateClientBodyTotalSessionsMin).optional(),
+  remainingSessions: zod
+    .number()
+    .min(updateClientBodyRemainingSessionsMin)
+    .optional(),
+  packPrice: zod.number().min(updateClientBodyPackPriceMin).optional(),
 });
 
 export const UpdateClientResponse = zod.object({
@@ -113,6 +137,9 @@ export const UpdateClientResponse = zod.object({
   name: zod.string(),
   phone: zod.string().nullish(),
   notes: zod.string().nullish(),
+  totalSessions: zod.number(),
+  remainingSessions: zod.number(),
+  packPrice: zod.number(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -153,7 +180,7 @@ export const CreateSessionBody = zod.object({
   clientId: zod.number(),
   date: zod.coerce.date(),
   status: zod.enum(["pending", "completed", "cancelled"]).optional(),
-  price: zod.number(),
+  price: zod.number().optional(),
   paid: zod.boolean().optional(),
   notes: zod.string().nullish(),
 });

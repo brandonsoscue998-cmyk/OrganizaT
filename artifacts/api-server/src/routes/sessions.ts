@@ -15,6 +15,20 @@ const router: IRouter = Router();
 
 router.use(requireAuth);
 
+const sessionSelectFields = {
+  id: sessionsTable.id,
+  userId: sessionsTable.userId,
+  clientId: sessionsTable.clientId,
+  clientName: clientsTable.name,
+  date: sessionsTable.date,
+  status: sessionsTable.status,
+  price: sessionsTable.price,
+  paid: sessionsTable.paid,
+  notes: sessionsTable.notes,
+  createdAt: sessionsTable.createdAt,
+  updatedAt: sessionsTable.updatedAt,
+};
+
 router.get("/sessions", async (req, res): Promise<void> => {
   const queryParsed = ListSessionsQueryParams.safeParse(req.query);
   const clientId = queryParsed.success ? queryParsed.data.clientId : null;
@@ -25,19 +39,7 @@ router.get("/sessions", async (req, res): Promise<void> => {
   }
 
   const rows = await db
-    .select({
-      id: sessionsTable.id,
-      userId: sessionsTable.userId,
-      clientId: sessionsTable.clientId,
-      clientName: clientsTable.name,
-      date: sessionsTable.date,
-      status: sessionsTable.status,
-      price: sessionsTable.price,
-      paid: sessionsTable.paid,
-      notes: sessionsTable.notes,
-      createdAt: sessionsTable.createdAt,
-      updatedAt: sessionsTable.updatedAt,
-    })
+    .select(sessionSelectFields)
     .from(sessionsTable)
     .leftJoin(clientsTable, eq(sessionsTable.clientId, clientsTable.id))
     .where(and(...conditions))
@@ -65,6 +67,19 @@ router.post("/sessions", async (req, res): Promise<void> => {
     return;
   }
 
+  let finalPrice: number;
+
+  if (client.remainingSessions > 0 && client.totalSessions > 0) {
+    finalPrice = Number(client.packPrice) / client.totalSessions;
+
+    await db
+      .update(clientsTable)
+      .set({ remainingSessions: client.remainingSessions - 1 })
+      .where(eq(clientsTable.id, clientId));
+  } else {
+    finalPrice = price ?? 0;
+  }
+
   const [session] = await db
     .insert(sessionsTable)
     .values({
@@ -72,26 +87,14 @@ router.post("/sessions", async (req, res): Promise<void> => {
       clientId,
       date: new Date(date),
       status: status ?? "pending",
-      price: String(price),
+      price: String(finalPrice),
       paid: paid ?? false,
       notes: notes ?? null,
     })
     .returning();
 
   const [row] = await db
-    .select({
-      id: sessionsTable.id,
-      userId: sessionsTable.userId,
-      clientId: sessionsTable.clientId,
-      clientName: clientsTable.name,
-      date: sessionsTable.date,
-      status: sessionsTable.status,
-      price: sessionsTable.price,
-      paid: sessionsTable.paid,
-      notes: sessionsTable.notes,
-      createdAt: sessionsTable.createdAt,
-      updatedAt: sessionsTable.updatedAt,
-    })
+    .select(sessionSelectFields)
     .from(sessionsTable)
     .leftJoin(clientsTable, eq(sessionsTable.clientId, clientsTable.id))
     .where(eq(sessionsTable.id, session.id));
@@ -108,19 +111,7 @@ router.get("/sessions/:id", async (req, res): Promise<void> => {
   }
 
   const [row] = await db
-    .select({
-      id: sessionsTable.id,
-      userId: sessionsTable.userId,
-      clientId: sessionsTable.clientId,
-      clientName: clientsTable.name,
-      date: sessionsTable.date,
-      status: sessionsTable.status,
-      price: sessionsTable.price,
-      paid: sessionsTable.paid,
-      notes: sessionsTable.notes,
-      createdAt: sessionsTable.createdAt,
-      updatedAt: sessionsTable.updatedAt,
-    })
+    .select(sessionSelectFields)
     .from(sessionsTable)
     .leftJoin(clientsTable, eq(sessionsTable.clientId, clientsTable.id))
     .where(and(eq(sessionsTable.id, params.data.id), eq(sessionsTable.userId, req.user!.userId)));
@@ -167,19 +158,7 @@ router.patch("/sessions/:id", async (req, res): Promise<void> => {
   }
 
   const [row] = await db
-    .select({
-      id: sessionsTable.id,
-      userId: sessionsTable.userId,
-      clientId: sessionsTable.clientId,
-      clientName: clientsTable.name,
-      date: sessionsTable.date,
-      status: sessionsTable.status,
-      price: sessionsTable.price,
-      paid: sessionsTable.paid,
-      notes: sessionsTable.notes,
-      createdAt: sessionsTable.createdAt,
-      updatedAt: sessionsTable.updatedAt,
-    })
+    .select(sessionSelectFields)
     .from(sessionsTable)
     .leftJoin(clientsTable, eq(sessionsTable.clientId, clientsTable.id))
     .where(eq(sessionsTable.id, session.id));

@@ -45,6 +45,9 @@ export interface Client {
   phone?: string | null;
   /** @nullable */
   notes?: string | null;
+  totalSessions: number;
+  remainingSessions: number;
+  packPrice: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -55,6 +58,10 @@ export interface CreateClientBody {
   phone?: string | null;
   /** @nullable */
   notes?: string | null;
+  /** @minimum 0 */
+  totalSessions?: number;
+  /** @minimum 0 */
+  packPrice?: number;
 }
 
 export interface UpdateClientBody {
@@ -63,6 +70,12 @@ export interface UpdateClientBody {
   phone?: string | null;
   /** @nullable */
   notes?: string | null;
+  /** @minimum 0 */
+  totalSessions?: number;
+  /** @minimum 0 */
+  remainingSessions?: number;
+  /** @minimum 0 */
+  packPrice?: number;
 }
 
 export type SessionStatus = (typeof SessionStatus)[keyof typeof SessionStatus];
@@ -102,7 +115,7 @@ export interface CreateSessionBody {
   clientId: number;
   date: string;
   status?: CreateSessionBodyStatus;
-  price: number;
+  price?: number;
   paid?: boolean;
   /** @nullable */
   notes?: string | null;
