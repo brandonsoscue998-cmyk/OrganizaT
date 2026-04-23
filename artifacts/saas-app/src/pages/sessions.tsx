@@ -25,7 +25,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Trash2, Calendar, ChevronRight, Loader2, Package } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Plus, Trash2, Calendar, ChevronRight, Loader2, Package, Info } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { t, locale, formatCurrency, statusLabel } from "@/lib/i18n";
@@ -68,6 +69,7 @@ const filterOptions = [
 
 export default function Sessions() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
@@ -109,6 +111,7 @@ export default function Sessions() {
     queryClient.invalidateQueries({ queryKey: getGetDashboardStatsQueryKey() });
     queryClient.invalidateQueries({ queryKey: getGetRecentSessionsQueryKey() });
     queryClient.invalidateQueries({ queryKey: getGetMonthlyRevenueQueryKey() });
+    toast({ title: t.sessions.createdSuccess });
     reset();
     setOpen(false);
   };
@@ -122,6 +125,136 @@ export default function Sessions() {
   };
 
   const filtered = sessions?.filter(s => filterStatus === "all" ? true : s.status === filterStatus) ?? [];
+  const totalIsEmpty = !isLoading && sessions?.length === 0;
+
+  const newSessionDialog = (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          size="sm"
+          className={`gap-2 transition-all ${totalIsEmpty ? "ring-2 ring-primary ring-offset-2 shadow-md" : ""}`}
+        >
+          <Plus className="h-4 w-4" />
+          {t.sessions.newSession}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{t.sessions.newSessionTitle}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
+          <div className="space-y-1.5">
+            <Label>{t.sessions.client}</Label>
+            <Select onValueChange={(v) => setValue("clientId", parseInt(v, 10))}>
+              <SelectTrigger className={errors.clientId ? "border-destructive" : ""}>
+                <SelectValue placeholder={t.sessions.selectClient} />
+              </SelectTrigger>
+              <SelectContent>
+                {clients?.map(c => (
+                  <SelectItem key={c.id} value={String(c.id)}>
+                    <span className="flex items-center gap-2">
+                      {c.name}
+                      {c.totalSessions > 0 && (
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${c.remainingSessions === 0 ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"}`}>
+                          {c.remainingSessions === 0 ? t.clients.packExhausted : `${c.remainingSessions}/${c.totalSessions}`}
+                        </span>
+                      )}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.clientId && <p className="text-xs text-destructive">{errors.clientId.message}</p>}
+          </div>
+
+          {packActive && selectedClient ? (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-xs">
+              <Package className="h-3.5 w-3.5 shrink-0" />
+              <span>{t.sessions.packRemainingHint(selectedClient.remainingSessions, selectedClient.totalSessions)}</span>
+            </div>
+          ) : !watchedClientId ? (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border text-muted-foreground text-xs">
+              <Info className="h-3.5 w-3.5 shrink-0" />
+              <span>{t.sessions.packPriceHint}</span>
+            </div>
+          ) : null}
+
+          <div className="space-y-1.5">
+            <Label htmlFor="date">{t.sessions.dateTime}</Label>
+            <Input id="date" type="datetime-local" {...register("date")} className={errors.date ? "border-destructive" : ""} />
+            {errors.date && <p className="text-xs text-destructive">{errors.date.message}</p>}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>{t.sessions.status}</Label>
+              <Select defaultValue="pending" onValueChange={(v) => setValue("status", v as "pending" | "completed" | "cancelled")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">{t.sessions.filterPending}</SelectItem>
+                  <SelectItem value="completed">{t.sessions.filterCompleted}</SelectItem>
+                  <SelectItem value="cancelled">{t.sessions.filterCancelled}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="price">{t.sessions.price}</Label>
+              {packActive && autoPrice !== null ? (
+                <div className="relative">
+                  <Input
+                    id="price"
+                    type="text"
+                    value={formatCurrency(autoPrice)}
+                    disabled
+                    className="bg-muted text-muted-foreground cursor-not-allowed"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-blue-600 font-medium pointer-events-none">
+                    Auto
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <Input
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder={t.sessions.pricePlaceholder}
+                    {...register("price")}
+                    className={errors.price ? "border-destructive" : ""}
+                  />
+                  {errors.price && <p className="text-xs text-destructive">{errors.price.message}</p>}
+                </>
+              )}
+              {packActive && autoPrice !== null && (
+                <p className="text-xs text-blue-600">{t.sessions.priceAutoHint(formatCurrency(autoPrice))}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="paid"
+              checked={watch("paid")}
+              onCheckedChange={(v) => setValue("paid", !!v)}
+            />
+            <Label htmlFor="paid">{t.sessions.markAsPaid}</Label>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="notes">{t.sessions.sessionNotes} <span className="text-muted-foreground">{t.sessions.notesOptional}</span></Label>
+            <Textarea id="notes" rows={2} placeholder={t.sessions.notesPlaceholder} {...register("notes")} />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t.sessions.cancel}</Button>
+            <Button type="submit" disabled={createSession.isPending}>
+              {createSession.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {t.sessions.create}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
 
   return (
     <Layout>
@@ -131,149 +264,48 @@ export default function Sessions() {
             <h1 className="text-2xl font-bold tracking-tight">{t.sessions.title}</h1>
             <p className="text-muted-foreground text-sm">{t.sessions.subtitle}</p>
           </div>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="gap-2">
-                <Plus className="h-4 w-4" />
-                {t.sessions.newSession}
+          {newSessionDialog}
+        </div>
+
+        {!totalIsEmpty && (
+          <div className="flex gap-2 flex-wrap">
+            {filterOptions.map(opt => (
+              <Button
+                key={opt.value}
+                variant={filterStatus === opt.value ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilterStatus(opt.value)}
+              >
+                {opt.label}
               </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>{t.sessions.newSessionTitle}</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
-                <div className="space-y-1.5">
-                  <Label>{t.sessions.client}</Label>
-                  <Select onValueChange={(v) => setValue("clientId", parseInt(v, 10))}>
-                    <SelectTrigger className={errors.clientId ? "border-destructive" : ""}>
-                      <SelectValue placeholder={t.sessions.selectClient} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clients?.map(c => (
-                        <SelectItem key={c.id} value={String(c.id)}>
-                          <span className="flex items-center gap-2">
-                            {c.name}
-                            {c.totalSessions > 0 && (
-                              <span className={`text-xs px-1.5 py-0.5 rounded-full ${c.remainingSessions === 0 ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"}`}>
-                                {c.remainingSessions === 0 ? t.clients.packExhausted : `${c.remainingSessions}/${c.totalSessions}`}
-                              </span>
-                            )}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.clientId && <p className="text-xs text-destructive">{errors.clientId.message}</p>}
-                </div>
-
-                {packActive && selectedClient && (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-xs">
-                    <Package className="h-3.5 w-3.5 shrink-0" />
-                    <span>{t.sessions.packRemainingHint(selectedClient.remainingSessions, selectedClient.totalSessions)}</span>
-                  </div>
-                )}
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="date">{t.sessions.dateTime}</Label>
-                  <Input id="date" type="datetime-local" {...register("date")} className={errors.date ? "border-destructive" : ""} />
-                  {errors.date && <p className="text-xs text-destructive">{errors.date.message}</p>}
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label>{t.sessions.status}</Label>
-                    <Select defaultValue="pending" onValueChange={(v) => setValue("status", v as "pending" | "completed" | "cancelled")}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">{t.sessions.filterPending}</SelectItem>
-                        <SelectItem value="completed">{t.sessions.filterCompleted}</SelectItem>
-                        <SelectItem value="cancelled">{t.sessions.filterCancelled}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="price">{t.sessions.price}</Label>
-                    {packActive && autoPrice !== null ? (
-                      <div className="relative">
-                        <Input
-                          id="price"
-                          type="text"
-                          value={formatCurrency(autoPrice)}
-                          disabled
-                          className="bg-muted text-muted-foreground cursor-not-allowed"
-                        />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-blue-600 font-medium pointer-events-none">
-                          Auto
-                        </span>
-                      </div>
-                    ) : (
-                      <>
-                        <Input
-                          id="price"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder={t.sessions.pricePlaceholder}
-                          {...register("price")}
-                          className={errors.price ? "border-destructive" : ""}
-                        />
-                        {errors.price && <p className="text-xs text-destructive">{errors.price.message}</p>}
-                      </>
-                    )}
-                    {packActive && autoPrice !== null && (
-                      <p className="text-xs text-blue-600">{t.sessions.priceAutoHint(formatCurrency(autoPrice))}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="paid"
-                    checked={watch("paid")}
-                    onCheckedChange={(v) => setValue("paid", !!v)}
-                  />
-                  <Label htmlFor="paid">{t.sessions.markAsPaid}</Label>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="notes">{t.sessions.sessionNotes} <span className="text-muted-foreground">{t.sessions.notesOptional}</span></Label>
-                  <Textarea id="notes" rows={2} placeholder={t.sessions.notesPlaceholder} {...register("notes")} />
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t.sessions.cancel}</Button>
-                  <Button type="submit" disabled={createSession.isPending}>
-                    {createSession.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                    {t.sessions.create}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        <div className="flex gap-2 flex-wrap">
-          {filterOptions.map(opt => (
-            <Button
-              key={opt.value}
-              variant={filterStatus === opt.value ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilterStatus(opt.value)}
-            >
-              {opt.label}
-            </Button>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">
-              {t.sessions.sessionCount(filtered.length, filterStatus)}
-            </CardTitle>
-          </CardHeader>
+          {!totalIsEmpty && (
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">
+                {t.sessions.sessionCount(filtered.length, filterStatus)}
+              </CardTitle>
+            </CardHeader>
+          )}
           <CardContent className="p-0">
             {isLoading ? (
               <div className="p-6 space-y-3">
                 {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
+              </div>
+            ) : totalIsEmpty ? (
+              <div className="p-12 text-center">
+                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="h-8 w-8 text-muted-foreground opacity-50" />
+                </div>
+                <p className="font-semibold text-sm mb-1">{t.sessions.noSessions}</p>
+                <p className="text-muted-foreground text-xs mb-5 max-w-xs mx-auto">{t.sessions.noSessionsEmpty}</p>
+                <Button size="sm" onClick={() => setOpen(true)} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  {t.sessions.createFirst}
+                </Button>
               </div>
             ) : !filtered.length ? (
               <div className="py-12 text-center">

@@ -18,10 +18,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, ChevronRight, Users, Package } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { Link } from "wouter";
-import { t, formatCurrency } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
 
 const clientSchema = z.object({
   name: z.string().min(1, t.clients.nameRequired),
@@ -35,6 +36,7 @@ type ClientForm = z.infer<typeof clientSchema>;
 
 export default function Clients() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const { data: clients, isLoading } = useListClients({ query: { queryKey: getListClientsQueryKey() } });
   const createClient = useCreateClient();
@@ -44,6 +46,8 @@ export default function Clients() {
     resolver: zodResolver(clientSchema),
     defaultValues: { totalSessions: 0, packPrice: 0 },
   });
+
+  const isEmpty = !isLoading && clients?.length === 0;
 
   const onSubmit = async (data: ClientForm) => {
     await createClient.mutateAsync({
@@ -56,6 +60,7 @@ export default function Clients() {
       }
     });
     queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
+    toast({ title: t.clients.createdSuccess });
     reset();
     setOpen(false);
   };
@@ -75,7 +80,10 @@ export default function Clients() {
           </div>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" className="gap-2">
+              <Button
+                size="sm"
+                className={`gap-2 transition-all ${isEmpty ? "ring-2 ring-primary ring-offset-2 shadow-md" : ""}`}
+              >
                 <Plus className="h-4 w-4" />
                 {t.clients.addClient}
               </Button>
@@ -105,6 +113,7 @@ export default function Clients() {
                     <span className="text-sm font-medium">{t.clients.packSection}</span>
                     <span className="text-xs text-muted-foreground">{t.clients.packOptional}</span>
                   </div>
+                  <p className="text-xs text-muted-foreground -mt-1">{t.clients.packHint}</p>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label htmlFor="totalSessions">{t.clients.packSessions}</Label>
@@ -156,15 +165,21 @@ export default function Clients() {
               <div className="p-6 space-y-3">
                 {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
               </div>
-            ) : !clients?.length ? (
+            ) : isEmpty ? (
               <div className="p-12 text-center">
-                <Users className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-40" />
-                <p className="text-muted-foreground text-sm font-medium">{t.clients.noClients}</p>
-                <p className="text-muted-foreground text-xs mt-1">{t.clients.noClientsDesc}</p>
+                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                  <Users className="h-8 w-8 text-muted-foreground opacity-50" />
+                </div>
+                <p className="font-semibold text-sm mb-1">{t.clients.noClients}</p>
+                <p className="text-muted-foreground text-xs mb-5 max-w-xs mx-auto">{t.clients.noClientsDesc}</p>
+                <Button size="sm" onClick={() => setOpen(true)} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  {t.clients.createFirst}
+                </Button>
               </div>
             ) : (
               <div className="divide-y">
-                {clients.map(client => {
+                {clients!.map(client => {
                   const hasPack = client.totalSessions > 0;
                   const packExhausted = hasPack && client.remainingSessions === 0;
                   return (
