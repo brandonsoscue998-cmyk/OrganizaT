@@ -1,15 +1,26 @@
 import { useRoute } from "wouter";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetClient,
+  useUpdateClient,
   useListSessions,
   getGetClientQueryKey,
+  getListClientsQueryKey,
   getListSessionsQueryKey,
 } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Phone, StickyNote, Calendar } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Phone, StickyNote, Calendar, Package, Pencil, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { t, locale, formatCurrency, statusLabel } from "@/lib/i18n";
@@ -27,9 +38,19 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+const packSchema = z.object({
+  totalSessions: z.coerce.number().min(0, t.clients.packSessionsMin),
+  packPrice: z.coerce.number().min(0, t.clients.packPriceMin),
+});
+
+type PackForm = z.infer<typeof packSchema>;
+
 export default function ClientDetail() {
   const [, params] = useRoute("/clients/:id");
   const id = params ? parseInt(params.id, 10) : 0;
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [packDialogOpen, setPackDialogOpen] = useState(false);
 
   const { data: client, isLoading: clientLoading } = useGetClient(id, {
     query: { enabled: !!id, queryKey: getGetClientQueryKey(id) }
@@ -38,6 +59,35 @@ export default function ClientDetail() {
   const { data: sessions, isLoading: sessionsLoading } = useListSessions({ clientId: id }, {
     query: { enabled: !!id, queryKey: getListSessionsQueryKey({ clientId: id }) }
   });
+
+  const updateClient = useUpdateClient();
+
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<PackForm>({
+    resolver: zodResolver(packSchema),
+    values: {
+      totalSessions: client?.totalSessions ?? 0,
+      packPrice: client?.packPrice ?? 0,
+    },
+  });
+
+  const onPackSubmit = async (data: PackForm) => {
+    await updateClient.mutateAsync({
+      id,
+      data: {
+        totalSessions: data.totalSessions,
+        packPrice: data.packPrice,
+      },
+    });
+    queryClient.invalidateQueries({ queryKey: getGetClientQueryKey(id) });
+    queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
+    toast({ title: t.clients.packUpdated });
+    setPackDialogOpen(false);
+  };
+
+  const hasPack = (client?.totalSessions ?? 0) > 0;
+  const packExhausted = hasPack && client!.remainingSessions === 0;
+  const packUsed = hasPack ? client!.totalSessions - client!.remainingSessions : 0;
+  const progressPct = hasPack ? Math.round((client!.remainingSessions / client!.totalSessions) * 100) : 0;
 
   return (
     <Layout>
@@ -86,6 +136,115 @@ export default function ClientDetail() {
                   </div>
                 ) : null}
               </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Pack de sesiones */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div className="flex items-center gap-2">
+              <Package className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-base">{t.clients.packStatus}</CardTitle>
+            </div>
+            <Dialog open={packDialogOpen} onOpenChange={setPackDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5" disabled={clientLoading}>
+                  <Pencil className="h-3.5 w-3.5" />
+                  {t.clients.editPack}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>{t.clients.editPack}</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit(onPackSubmit)} className="space-y-4 mt-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="totalSessions">{t.clients.packSessions}</Label>
+                    <Input
+                      id="totalSessions"
+                      type="number"
+                      min="0"
+                      step="1"
+                      placeholder={t.clients.packSessionsPlaceholder}
+                      {...register("totalSessions")}
+                      className={errors.totalSessions ? "border-destructive" : ""}
+                    />
+                    {errors.totalSessions && <p className="text-xs text-destructive">{errors.totalSessions.message}</p>}
+                    {client && (
+                      <p className="text-xs text-muted-foreground">
+                        Actualmente: {client.remainingSessions} de {client.totalSessions} restantes
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="packPrice">{t.clients.packPrice}</Label>
+                    <Input
+                      id="packPrice"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder={t.clients.packPricePlaceholder}
+                      {...register("packPrice")}
+                      className={errors.packPrice ? "border-destructive" : ""}
+                    />
+                    {errors.packPrice && <p className="text-xs text-destructive">{errors.packPrice.message}</p>}
+                  </div>
+                  <p className="text-xs text-muted-foreground border rounded-md px-3 py-2 bg-muted/40">
+                    {t.clients.packHint}
+                  </p>
+                  <div className="flex justify-end gap-2 pt-1">
+                    <Button type="button" variant="outline" onClick={() => { reset(); setPackDialogOpen(false); }}>
+                      {t.clients.cancel}
+                    </Button>
+                    <Button type="submit" disabled={updateClient.isPending}>
+                      {updateClient.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                      {t.clients.updatePack}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </CardHeader>
+          <CardContent>
+            {clientLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-2 w-full" />
+              </div>
+            ) : !hasPack ? (
+              <div className="text-center py-4">
+                <p className="text-sm font-medium text-muted-foreground">{t.clients.noPack}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t.clients.noPackDesc}</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">{t.clients.packRemaining(client!.remainingSessions, client!.totalSessions)}</span>
+                  {packExhausted ? (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">
+                      {t.clients.packExhausted}
+                    </span>
+                  ) : (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
+                      {t.clients.packActive}
+                    </span>
+                  )}
+                </div>
+
+                {/* Progress bar */}
+                <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${packExhausted ? "bg-red-400" : "bg-blue-500"}`}
+                    style={{ width: `${progressPct}%` }}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{packUsed} sesión{packUsed !== 1 ? "es" : ""} usada{packUsed !== 1 ? "s" : ""}</span>
+                  <span>{t.clients.packPriceLabel}: {formatCurrency(client!.packPrice)}</span>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>

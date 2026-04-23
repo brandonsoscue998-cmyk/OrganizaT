@@ -94,10 +94,6 @@ router.patch("/clients/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: "totalSessions must be >= 0" });
     return;
   }
-  if (parsed.data.remainingSessions !== undefined && parsed.data.remainingSessions < 0) {
-    res.status(400).json({ error: "remainingSessions must be >= 0" });
-    return;
-  }
   if (parsed.data.packPrice !== undefined && parsed.data.packPrice < 0) {
     res.status(400).json({ error: "packPrice must be >= 0" });
     return;
@@ -107,9 +103,41 @@ router.patch("/clients/:id", async (req, res): Promise<void> => {
   if (parsed.data.name !== undefined) updateData.name = parsed.data.name;
   if (parsed.data.phone !== undefined) updateData.phone = parsed.data.phone;
   if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes;
-  if (parsed.data.totalSessions !== undefined) updateData.totalSessions = parsed.data.totalSessions;
-  if (parsed.data.remainingSessions !== undefined) updateData.remainingSessions = parsed.data.remainingSessions;
   if (parsed.data.packPrice !== undefined) updateData.packPrice = String(parsed.data.packPrice);
+
+  if (parsed.data.totalSessions !== undefined) {
+    const [current] = await db
+      .select()
+      .from(clientsTable)
+      .where(and(eq(clientsTable.id, params.data.id), eq(clientsTable.userId, req.user!.userId)));
+
+    if (!current) {
+      res.status(404).json({ error: "Client not found" });
+      return;
+    }
+
+    const oldTotal = current.totalSessions;
+    const oldRemaining = current.remainingSessions;
+    const newTotal = parsed.data.totalSessions;
+
+    let newRemaining: number;
+    if (newTotal > oldTotal) {
+      newRemaining = oldRemaining + (newTotal - oldTotal);
+    } else {
+      newRemaining = Math.min(oldRemaining, newTotal);
+    }
+
+    updateData.totalSessions = newTotal;
+    updateData.remainingSessions = Math.max(0, newRemaining);
+  }
+
+  if (parsed.data.remainingSessions !== undefined && parsed.data.totalSessions === undefined) {
+    if (parsed.data.remainingSessions < 0) {
+      res.status(400).json({ error: "remainingSessions must be >= 0" });
+      return;
+    }
+    updateData.remainingSessions = parsed.data.remainingSessions;
+  }
 
   const [client] = await db
     .update(clientsTable)

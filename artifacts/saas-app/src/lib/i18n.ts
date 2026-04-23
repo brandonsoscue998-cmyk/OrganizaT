@@ -114,6 +114,14 @@ export const t = {
     sessionsLabel: (remaining: number, total: number) => `${remaining} / ${total} sesiones`,
     packExhausted: "Pack agotado",
     packActive: "Pack activo",
+    editPack: "Editar pack",
+    updatePack: "Guardar cambios",
+    packUpdated: "Pack actualizado correctamente",
+    packStatus: "Estado del pack",
+    packRemaining: (remaining: number, total: number) => `${remaining} de ${total} sesiones disponibles`,
+    packPriceLabel: "Precio del pack",
+    noPack: "Sin pack de sesiones",
+    noPackDesc: "Añade un pack de sesiones para gestionar bonos.",
   },
 
   sessions: {
