@@ -107,7 +107,7 @@ function StatCard({ title, value, icon: Icon, description, loading }: {
       <CardContent className="pt-6">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-medium text-muted-foreground">{title}</span>
-          <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center">
+          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
             <Icon className="h-4 w-4 text-primary" />
           </div>
         </div>
@@ -124,12 +124,12 @@ function StatCard({ title, value, icon: Icon, description, loading }: {
 
 function StatusBadge({ status }: { status: string }) {
   const variants: Record<string, string> = {
-    pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    completed: "bg-green-100 text-green-800 border-green-200",
-    cancelled: "bg-gray-100 text-gray-700 border-gray-200",
+    pending: "bg-amber-50 text-amber-700 border-amber-200",
+    completed: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    cancelled: "bg-slate-100 text-slate-500 border-slate-200",
   };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${variants[status] ?? variants.pending}`}>
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-medium border ${variants[status] ?? variants.pending}`}>
       {statusLabel(status)}
     </span>
   );
@@ -330,7 +330,7 @@ export default function Dashboard() {
           <Card>
             <CardContent className="pt-4 pb-4">
               <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                   <Link2 className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -356,7 +356,7 @@ export default function Dashboard() {
           <Card>
             <CardContent className="pt-4 pb-4">
               <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                   <CheckCircle2 className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -378,7 +378,7 @@ export default function Dashboard() {
           <Card>
             <CardContent className="pt-4 pb-4">
               <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                   <Share2 className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -400,7 +400,7 @@ export default function Dashboard() {
           <Card>
             <CardContent className="pt-4 pb-4">
               <div className="flex items-start gap-3">
-                <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
                   <Lock className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">

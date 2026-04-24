@@ -376,10 +376,12 @@ export default function Sessions() {
                 </Button>
               </div>
             ) : !filtered.length ? (
-              <div className="py-12 text-center">
-                <Calendar className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-40" />
-                <p className="text-muted-foreground text-sm font-medium">{t.sessions.noSessions}</p>
-                <p className="text-muted-foreground text-xs mt-1">
+              <div className="py-16 text-center select-none">
+                <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="h-7 w-7 text-muted-foreground opacity-50" />
+                </div>
+                <p className="font-semibold text-sm mb-1">{t.sessions.noSessions}</p>
+                <p className="text-muted-foreground text-xs max-w-xs mx-auto">
                   {t.sessions.noSessionsDesc(filterStatus)}
                 </p>
               </div>
