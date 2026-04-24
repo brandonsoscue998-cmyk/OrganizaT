@@ -114,7 +114,7 @@ function StatCard({ title, value, icon: Icon, description, loading }: {
         {loading ? (
           <Skeleton className="h-8 w-24" />
         ) : (
-          <div className="text-2xl font-bold">{value}</div>
+          <div className="text-3xl font-semibold tracking-tight">{value}</div>
         )}
         {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
       </CardContent>
