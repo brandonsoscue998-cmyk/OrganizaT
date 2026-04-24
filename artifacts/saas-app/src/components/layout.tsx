@@ -52,7 +52,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   const NavItems = () => (
     <>
-      <Link href="/dashboard" className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${location === "/dashboard" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
+      <Link href="/dashboard" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${location === "/dashboard" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
         <LayoutDashboard className="h-5 w-5" />
         {t.nav.dashboard}
         {pendingCount > 0 && (
@@ -61,30 +61,30 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </span>
         )}
       </Link>
-      <Link href="/clients" className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${location.startsWith("/clients") ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
+      <Link href="/clients" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${location.startsWith("/clients") ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
         <Users className="h-5 w-5" />
         {t.nav.clients}
       </Link>
-      <Link href="/sessions" className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${location.startsWith("/sessions") ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
+      <Link href="/sessions" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${location.startsWith("/sessions") ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
         <Calendar className="h-5 w-5" />
         {t.nav.sessions}
       </Link>
-      <Link href="/hoy" className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${location === "/hoy" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
+      <Link href="/hoy" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${location === "/hoy" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
         <Sun className="h-5 w-5" />
         {t.nav.today}
       </Link>
-      <Link href="/calendar" className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${location.startsWith("/calendar") ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
+      <Link href="/calendar" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${location.startsWith("/calendar") ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
         <CalendarDays className="h-5 w-5" />
         {t.nav.calendar}
       </Link>
       {user.role === "trainer" && (
-        <Link href="/book-space" className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${location.startsWith("/book-space") || location.startsWith("/space-book") ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
+        <Link href="/book-space" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${location.startsWith("/book-space") || location.startsWith("/space-book") ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
           <Building2 className="h-5 w-5" />
           {t.nav.spaceBook}
         </Link>
       )}
       {user.role !== "client" && (
-        <Link href="/users" className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${location.startsWith("/users") ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
+        <Link href="/users" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${location.startsWith("/users") ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
           <UserCog className="h-5 w-5" />
           Usuarios
         </Link>
