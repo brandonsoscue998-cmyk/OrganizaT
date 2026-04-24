@@ -16,7 +16,7 @@ router.get("/public/trainers", async (_req, res): Promise<void> => {
 
 async function findTrainer(username: string) {
   const [trainer] = await db
-    .select({ id: usersTable.id, name: usersTable.name, username: usersTable.username, role: usersTable.role, spaceName: usersTable.spaceName, pricePerSlot: usersTable.pricePerSlot, groupExtraPrice: usersTable.groupExtraPrice, referralsEnabled: usersTable.referralsEnabled })
+    .select({ id: usersTable.id, name: usersTable.name, username: usersTable.username, role: usersTable.role, spaceName: usersTable.spaceName, pricePerSlot: usersTable.pricePerSlot, groupExtraPrice: usersTable.groupExtraPrice, referralsEnabled: usersTable.referralsEnabled, autoAcceptBookings: usersTable.autoAcceptBookings })
     .from(usersTable)
     .where(eq(usersTable.username, username));
   return trainer ?? null;
@@ -111,22 +111,30 @@ router.post("/public/u/:username/book/:slotId", async (req, res): Promise<void> 
       .from(clientsTable)
       .where(and(eq(clientsTable.userId, trainer.id), eq(clientsTable.name, name)));
 
+    const wasNew = !client;
     if (!client) {
-      const updatedBookedTimes = [...bookedTimes, subSlotTime];
-      await tx
-        .update(availabilityTable)
-        .set({ bookedSubSlots: JSON.stringify(updatedBookedTimes), clientName: name })
-        .where(eq(availabilityTable.id, id));
-      await tx.insert(bookingRequestsTable).values({
-        userId: trainer.id,
-        name,
-        phone: phone ?? null,
-        date: sessionDate,
-        slotId: id,
-        slotStartTime: subSlotTime,
-        people,
-      });
-      return null;
+      if (trainer.autoAcceptBookings && name) {
+        [client] = await tx
+          .insert(clientsTable)
+          .values({ userId: trainer.id, name, phone: phone ?? null, packPrice: "0", totalSessions: 0, remainingSessions: 0 })
+          .returning();
+      } else {
+        const updatedBookedTimes = [...bookedTimes, subSlotTime];
+        await tx
+          .update(availabilityTable)
+          .set({ bookedSubSlots: JSON.stringify(updatedBookedTimes), clientName: name })
+          .where(eq(availabilityTable.id, id));
+        await tx.insert(bookingRequestsTable).values({
+          userId: trainer.id,
+          name,
+          phone: phone ?? null,
+          date: sessionDate,
+          slotId: id,
+          slotStartTime: subSlotTime,
+          people,
+        });
+        return null;
+      }
     }
 
     if (client.remainingSessions > 0) {
@@ -163,7 +171,7 @@ router.post("/public/u/:username/book/:slotId", async (req, res): Promise<void> 
       .set({ bookedSubSlots: JSON.stringify(updatedBookedTimes), sessionId: sess.id, clientName: name })
       .where(eq(availabilityTable.id, id));
 
-    return sess;
+    return { ...sess, autoAccepted: wasNew };
   });
 
   if (!result) {

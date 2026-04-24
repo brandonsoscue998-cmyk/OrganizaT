@@ -109,8 +109,16 @@ router.get("/auth/me", requireAuth, async (req, res): Promise<void> => {
     pricePerSlot: user.pricePerSlot,
     groupExtraPrice: user.groupExtraPrice,
     referralsEnabled: user.referralsEnabled,
+    autoAcceptBookings: user.autoAcceptBookings,
     createdAt: user.createdAt,
   });
+});
+
+router.patch("/auth/me/auto-accept", requireAuth, async (req, res): Promise<void> => {
+  const enabled = req.body?.enabled;
+  if (typeof enabled !== "boolean") { res.status(400).json({ error: "enabled must be boolean" }); return; }
+  await db.update(usersTable).set({ autoAcceptBookings: enabled }).where(eq(usersTable.id, req.user!.userId));
+  res.json({ autoAcceptBookings: enabled });
 });
 
 router.patch("/auth/me/referrals", requireAuth, async (req, res): Promise<void> => {

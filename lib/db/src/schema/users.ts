@@ -13,6 +13,7 @@ export const usersTable = pgTable("users", {
   pricePerSlot: text("price_per_slot").default("0"),
   groupExtraPrice: text("group_extra_price").default("0"),
   referralsEnabled: boolean("referrals_enabled").notNull().default(false),
+  autoAcceptBookings: boolean("auto_accept_bookings").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

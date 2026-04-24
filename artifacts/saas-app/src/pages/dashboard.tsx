@@ -150,9 +150,9 @@ export default function Dashboard() {
     queryFn: () => customFetch<AlertsData>("/api/alerts"),
   });
   const queryClient = useQueryClient();
-  const { data: me } = useQuery<{ username?: string | null; role?: string | null; spaceName?: string | null; pricePerSlot?: string | null; groupExtraPrice?: string | null; referralsEnabled?: boolean }>({
+  const { data: me } = useQuery<{ username?: string | null; role?: string | null; spaceName?: string | null; pricePerSlot?: string | null; groupExtraPrice?: string | null; referralsEnabled?: boolean; autoAcceptBookings?: boolean }>({
     queryKey: ["me"],
-    queryFn: () => customFetch<{ username?: string | null; role?: string | null; spaceName?: string | null; pricePerSlot?: string | null; groupExtraPrice?: string | null; referralsEnabled?: boolean }>("/api/auth/me"),
+    queryFn: () => customFetch<{ username?: string | null; role?: string | null; spaceName?: string | null; pricePerSlot?: string | null; groupExtraPrice?: string | null; referralsEnabled?: boolean; autoAcceptBookings?: boolean }>("/api/auth/me"),
   });
 
   type BookingRequest = { id: number; userId: number; name: string; phone: string | null; date: string; slotStartTime: string | null; people: number; status: string; createdAt: string };
@@ -173,6 +173,19 @@ export default function Dashboard() {
   const handleRejectRequest = async (id: number) => {
     await fetch(`${BASE}/api/booking-requests/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${localStorage.getItem("auth_token")}` } });
     refetchRequests();
+  };
+
+  const [autoAcceptToggling, setAutoAcceptToggling] = useState(false);
+  const handleAutoAcceptToggle = async (enabled: boolean) => {
+    setAutoAcceptToggling(true);
+    try {
+      await fetch(`${BASE}/api/auth/me/auto-accept`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+        body: JSON.stringify({ enabled }),
+      });
+      queryClient.invalidateQueries({ queryKey: ["me"] });
+    } finally { setAutoAcceptToggling(false); }
   };
 
   const [referralToggling, setReferralToggling] = useState(false);
@@ -333,6 +346,28 @@ export default function Dashboard() {
                 >
                   <Copy className="h-3.5 w-3.5 text-muted-foreground" />
                 </button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Auto-accept toggle — trainers & owners only */}
+        {me?.username && (
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">Aceptar reservas automáticamente</p>
+                  <p className="text-xs text-muted-foreground">Los nuevos clientes se crean al instante sin necesidad de aprobación manual</p>
+                </div>
+                <Switch
+                  checked={me.autoAcceptBookings ?? false}
+                  onCheckedChange={handleAutoAcceptToggle}
+                  disabled={autoAcceptToggling}
+                />
               </div>
             </CardContent>
           </Card>

@@ -47,6 +47,7 @@ export default function PublicBooking() {
   const [booked, setBooked] = useState(false);
   const [bookedSlot, setBookedSlot] = useState<Slot | null>(null);
   const [bookPending, setBookPending] = useState(false);
+  const [bookAutoAccepted, setBookAutoAccepted] = useState(false);
 
   const weekStart = startOfWeek(addWeeks(new Date(), weekOffset), { weekStartsOn: 1 });
   const weekEnd = addDays(weekStart, 6);
@@ -96,10 +97,12 @@ export default function PublicBooking() {
         body: JSON.stringify({ name: bookName.trim(), phone: bookPhone.trim() || undefined, people: bookPeople }),
       });
       if (res.status === 409) { setBookError("Este horario ya ha sido reservado."); return; }
-      if (!res.ok) { const d = await res.json(); setBookError(d.error ?? "Error al reservar."); return; }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setBookError(data.error ?? "Error al reservar."); return; }
       const slot = slots.find(s => s.id === bookingSlotId)!;
       setBookedSlot(slot);
       setBookPending(res.status === 202);
+      setBookAutoAccepted(data.autoAccepted === true);
       setBooked(true);
       setBookingSlotId(null);
     } catch {
@@ -153,6 +156,11 @@ export default function PublicBooking() {
               </div>
             </CardContent>
           </Card>
+          {bookAutoAccepted && (
+            <p className="mt-4 inline-flex items-center gap-1.5 text-xs bg-green-50 text-green-700 border border-green-200 rounded-full px-3 py-1">
+              <CheckCircle2 className="h-3 w-3" /> Reserva aceptada automáticamente
+            </p>
+          )}
           <p className="text-xs text-muted-foreground mt-5">{bookPending ? "Recibirás confirmación cuando el profesional acepte tu solicitud." : "Tu profesional se pondrá en contacto contigo pronto."}</p>
           <p className="text-[11px] text-muted-foreground/50 mt-8">Powered by <span className="font-semibold">Organiza<span className="text-primary/70">T</span></span></p>
         </div>

@@ -88,6 +88,7 @@ export default function ClientBook() {
   const [bookedSlot, setBookedSlot] = useState<Slot | null>(null);
   const [bookedSubStart, setBookedSubStart] = useState<string | null>(null);
   const [bookPending, setBookPending] = useState(false);
+  const [bookAutoAccepted, setBookAutoAccepted] = useState(false);
   const [referralCopied, setReferralCopied] = useState(false);
   const [requiredPassword, setRequiredPassword] = useState<string | null>(null);
   const [bookingPwdInput, setBookingPwdInput] = useState("");
@@ -173,18 +174,20 @@ export default function ClientBook() {
     const sorted = [...selectedSlots].sort((a, b) => timeToMins(a.subStart) - timeToMins(b.subStart));
     try {
       let hasPending = false;
+      let hasAutoAccept = false;
       for (const { slot, subStart } of sorted) {
         const res = await fetch(`${BASE}/api/public/u/${username}/book/${slot.id}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: me.name, phone: phone || "", slotStartTime: subStart, people }),
         });
+        const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          setBookError(err.error ?? "Error al reservar. Inténtalo de nuevo.");
+          setBookError(data.error ?? "Error al reservar. Inténtalo de nuevo.");
           return;
         }
         if (res.status === 202) hasPending = true;
+        if (data.autoAccepted) hasAutoAccept = true;
         setSlots(prev => prev.map(s => s.id === slot.id
           ? { ...s, bookedSubSlots: JSON.stringify([...JSON.parse(s.bookedSubSlots || "[]"), subStart]) }
           : s
@@ -193,6 +196,7 @@ export default function ClientBook() {
       setBookedSlot(sorted[0].slot);
       setBookedSubStart(sorted[0].subStart);
       setBookPending(hasPending);
+      setBookAutoAccepted(hasAutoAccept);
       setBooked(true);
       setSelectedSlots([]);
       setPeople(1);
@@ -236,7 +240,10 @@ export default function ClientBook() {
     return (
       <div className="mx-4 mt-3 flex items-center gap-3 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
         <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
-        <span className="capitalize flex-1">{t.clientView.bookingSuccessDesc(bookedDate)}</span>
+        <span className="capitalize flex-1">
+          {bookAutoAccepted ? "Reserva confirmada automáticamente" : t.clientView.bookingSuccessDesc(bookedDate)}
+          {!bookAutoAccepted && <span className="block text-xs mt-0.5 opacity-75">{bookedDate}</span>}
+        </span>
         <button onClick={() => setBooked(false)} className="text-green-600 hover:text-green-800 font-medium">✕</button>
       </div>
     );
