@@ -22,7 +22,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, ChevronRight, Users, Package, MessageCircle, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, ChevronRight, Users, Package, MessageCircle, AlertTriangle, Zap, Bell, Copy } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { t } from "@/lib/i18n";
@@ -151,6 +151,64 @@ export default function Clients() {
   };
 
   const isEmpty = !isLoading && clients?.length === 0;
+
+  const [autoSuggestEnabled, setAutoSuggestEnabled] = useState(false);
+
+  type AutoItem = {
+    type: "payment" | "inactive";
+    client: { id: number; name: string; phone?: string | null };
+    detail: string;
+    message: string;
+  };
+
+  const automationItems = useMemo<AutoItem[]>(() => {
+    if (!clients?.length || !allSessions) return [];
+    const items: AutoItem[] = [];
+
+    // 1. Payment reminders — sum unpaid sessions per client
+    const pendingByClient = new Map<number, number>();
+    for (const s of allSessions) {
+      if (!s.clientId || s.paid) continue;
+      pendingByClient.set(s.clientId, (pendingByClient.get(s.clientId) ?? 0) + parseFloat(String(s.price) || "0"));
+    }
+    for (const [clientId, amount] of pendingByClient) {
+      const client = clients.find(c => c.id === clientId);
+      if (!client || amount <= 0) continue;
+      items.push({
+        type: "payment",
+        client,
+        detail: `${amount % 1 === 0 ? amount.toFixed(0) : amount.toFixed(2)}€ pendiente`,
+        message: `Hola ${client.name}! 😊 Tienes un pago pendiente de ${amount % 1 === 0 ? amount.toFixed(0) : amount.toFixed(2)}€. ¿Cuándo te viene bien abonarlo?`,
+      });
+    }
+
+    // 2. Inactive client reactivation — lastSession > 7 days
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+    for (const client of clients) {
+      const last = clientInsights.get(client.id)?.last;
+      if (!last) continue;
+      const days = Math.floor((Date.now() - last.getTime()) / 86400000);
+      if (days >= 7) {
+        items.push({
+          type: "inactive",
+          client,
+          detail: `Sin sesión hace ${days} días`,
+          message: `Hola ${client.name}! 👋 Hace ${days} días que no entrenamos 💪 ¿Te apetece volver esta semana?`,
+        });
+      }
+    }
+
+    return items;
+  }, [clients, allSessions, clientInsights]);
+
+  const sendOrCopy = (item: AutoItem, mode: "whatsapp" | "copy") => {
+    if (mode === "whatsapp" && item.client.phone) {
+      window.open(`https://wa.me/${item.client.phone.replace(/\D/g, "")}?text=${encodeURIComponent(item.message)}`, "_blank");
+    } else {
+      navigator.clipboard.writeText(item.message);
+      toast({ title: "Mensaje copiado al portapapeles" });
+    }
+  };
 
   const onSubmit = async (data: ClientForm) => {
     await createClient.mutateAsync({
@@ -342,6 +400,73 @@ export default function Clients() {
             </DialogContent>
           </Dialog>
         </div>
+
+        {!isLoading && automationItems.length > 0 && (
+          <Card className="border-primary/20">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-primary" />
+                  Automatizaciones
+                  <span className="ml-1 text-xs font-normal bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
+                    {automationItems.length}
+                  </span>
+                </CardTitle>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>Sugerencias auto</span>
+                  <button
+                    onClick={() => setAutoSuggestEnabled(v => !v)}
+                    className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${autoSuggestEnabled ? "bg-primary" : "bg-muted"}`}
+                  >
+                    <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition-transform ${autoSuggestEnabled ? "translate-x-3" : "translate-x-0"}`} />
+                  </button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y">
+                {automationItems.map((item, i) => (
+                  <div key={i} className="px-5 py-3 flex items-start gap-3">
+                    <div className={`mt-0.5 h-7 w-7 rounded-full flex items-center justify-center shrink-0 ${item.type === "payment" ? "bg-amber-100" : "bg-blue-100"}`}>
+                      {item.type === "payment"
+                        ? <Bell className="h-3.5 w-3.5 text-amber-600" />
+                        : <MessageCircle className="h-3.5 w-3.5 text-blue-600" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-sm font-medium">{item.client.name}</span>
+                        <span className={`text-xs ${item.type === "payment" ? "text-amber-600" : "text-blue-600"}`}>{item.detail}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{item.message}</p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {item.client.phone && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs gap-1 border-green-200 text-green-700 hover:bg-green-50"
+                          onClick={() => sendOrCopy(item, "whatsapp")}
+                        >
+                          <MessageCircle className="h-3 w-3" />
+                          Enviar
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs gap-1 text-muted-foreground"
+                        onClick={() => sendOrCopy(item, "copy")}
+                      >
+                        <Copy className="h-3 w-3" />
+                        Copiar
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader className="pb-3">
