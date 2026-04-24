@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Users, Calendar, TrendingUp, AlertCircle, AlertTriangle, CalendarX, Banknote, Link2, Copy, Building2, Pencil, Check, X, Share2 } from "lucide-react";
+import { Users, Calendar, TrendingUp, AlertCircle, AlertTriangle, CalendarX, Banknote, Link2, Copy, Building2, Pencil, Check, X, Share2, Lock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
 import { Link } from "wouter";
@@ -160,6 +160,28 @@ export default function Dashboard() {
     } finally { setReferralToggling(false); }
   };
 
+  const bpKey = me?.username ? `bp_${me.username}` : null;
+  const [bpInput, setBpInput] = useState("");
+  const [bpSaved, setBpSaved] = useState<string | null>(null);
+  const [bpEditing, setBpEditing] = useState(false);
+  // Load stored password when trainer username is known
+  const [bpLoaded, setBpLoaded] = useState(false);
+  if (bpKey && !bpLoaded) { setBpSaved(localStorage.getItem(bpKey)); setBpLoaded(true); }
+  const handleBpSave = () => {
+    if (!bpKey) return;
+    if (bpInput.trim()) { localStorage.setItem(bpKey, bpInput.trim()); setBpSaved(bpInput.trim()); }
+    else { localStorage.removeItem(bpKey); setBpSaved(null); }
+    setBpEditing(false);
+    setBpInput("");
+  };
+  const handleBpClear = () => {
+    if (!bpKey) return;
+    localStorage.removeItem(bpKey);
+    setBpSaved(null);
+    setBpEditing(false);
+    setBpInput("");
+  };
+
   const allAlerts: { key: string; icon: React.ComponentType<{ className?: string }>; text: string; href: string; variant: "yellow" | "red" }[] = [];
   if (alerts) {
     alerts.lowSessions.forEach(c =>
@@ -267,6 +289,49 @@ export default function Dashboard() {
                   onCheckedChange={handleReferralToggle}
                   disabled={referralToggling}
                 />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Booking password — trainers & owners only */}
+        {me?.username && (
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                  <Lock className="h-4 w-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">Contraseña de reserva</p>
+                  <p className="text-xs text-muted-foreground mb-2">Los clientes deberán introducirla antes de reservar</p>
+                  {bpEditing ? (
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Nueva contraseña…"
+                        value={bpInput}
+                        onChange={e => setBpInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") handleBpSave(); if (e.key === "Escape") setBpEditing(false); }}
+                        className="h-8 text-sm flex-1"
+                        autoFocus
+                      />
+                      <Button size="sm" className="h-8 gap-1 text-xs" onClick={handleBpSave}>
+                        <Check className="h-3 w-3" /> Guardar
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => { setBpEditing(false); setBpInput(""); }}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : bpSaved ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-muted px-2 py-1 rounded font-mono tracking-widest">{"•".repeat(bpSaved.length)}</span>
+                      <button onClick={() => { setBpInput(bpSaved); setBpEditing(true); }} className="text-xs text-muted-foreground hover:text-foreground underline">Cambiar</button>
+                      <button onClick={handleBpClear} className="text-xs text-destructive hover:text-destructive/80 underline">Eliminar</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setBpEditing(true)} className="text-xs text-primary hover:underline">+ Añadir contraseña</button>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>

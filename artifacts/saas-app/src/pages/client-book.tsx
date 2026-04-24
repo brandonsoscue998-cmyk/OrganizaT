@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useGetMe } from "@workspace/api-client-react";
 import { format, startOfWeek, addDays, addWeeks } from "date-fns";
 import { es } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Loader2, CheckCircle2, CalendarCheck, LogOut, Search, Building2, Share2, Copy } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, CheckCircle2, CalendarCheck, LogOut, Search, Building2, Share2, Copy, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,6 +66,8 @@ export default function ClientBook() {
     setSelectedSlots([]);
     setClientInfo(null);
     setBooked(false);
+    setRequiredPassword(localStorage.getItem(`bp_${tr.username}`));
+    setBookingPwdInput("");
     await fetchSlots(tr.username);
     if (me?.name) {
       fetch(`${BASE}/api/public/u/${tr.username}/my-info?name=${encodeURIComponent(me.name)}`)
@@ -86,6 +88,8 @@ export default function ClientBook() {
   const [bookedSlot, setBookedSlot] = useState<Slot | null>(null);
   const [bookedSubStart, setBookedSubStart] = useState<string | null>(null);
   const [referralCopied, setReferralCopied] = useState(false);
+  const [requiredPassword, setRequiredPassword] = useState<string | null>(null);
+  const [bookingPwdInput, setBookingPwdInput] = useState("");
 
   const timeToMins = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
 
@@ -159,6 +163,10 @@ export default function ClientBook() {
 
   const handleBook = async () => {
     if (selectedSlots.length === 0 || !me?.name) return;
+    if (requiredPassword && bookingPwdInput !== requiredPassword) {
+      setBookError("Contraseña incorrecta");
+      return;
+    }
     setBookLoading(true);
     setBookError("");
     const sorted = [...selectedSlots].sort((a, b) => timeToMins(a.subStart) - timeToMins(b.subStart));
@@ -444,6 +452,20 @@ export default function ClientBook() {
                 Sin pack activo — el precio lo confirma el entrenador
               </div>
             ) : null}
+            {requiredPassword && (
+              <div className="space-y-1.5">
+                <Label className="text-xs flex items-center gap-1.5">
+                  <Lock className="h-3 w-3" /> Contraseña de acceso
+                </Label>
+                <Input
+                  type="password"
+                  placeholder="Introduce la contraseña"
+                  value={bookingPwdInput}
+                  onChange={e => { setBookingPwdInput(e.target.value); setBookError(""); }}
+                  className="h-9"
+                />
+              </div>
+            )}
             {bookError && <p className="text-xs text-destructive">{bookError}</p>}
             <Button className="w-full" onClick={handleBook} disabled={bookLoading}>
               {bookLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
