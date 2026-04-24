@@ -168,6 +168,7 @@ export default function Sessions() {
       totalAmount: ss.reduce((sum, s) => sum + Number(s.price), 0),
       paidAmount: ss.filter(s => s.paid).reduce((sum, s) => sum + Number(s.price), 0),
       pendingAmount: ss.filter(s => !s.paid).reduce((sum, s) => sum + Number(s.price), 0),
+      pendingSessions: ss.filter(s => !s.paid).length,
     }));
   }, [filtered]);
 
@@ -399,6 +400,13 @@ export default function Sessions() {
                               )}
                               {group.pendingAmount > 0 && (
                                 <span className="text-[10px] text-yellow-700">Pendiente <span className="font-semibold">{formatCurrency(group.pendingAmount)}</span></span>
+                              )}
+                              {group.pendingSessions === 0 ? (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700 border border-green-200">✔ Cliente frecuente</span>
+                              ) : group.pendingSessions <= 2 ? (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">⚠ Tiene pagos pendientes</span>
+                              ) : (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-red-100 text-red-700 border border-red-200">🚨 Alto riesgo de impago</span>
                               )}
                             </div>
                           </div>
