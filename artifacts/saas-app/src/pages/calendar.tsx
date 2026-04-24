@@ -269,7 +269,7 @@ export default function Calendar() {
                                 <Clock className="h-3 w-3 shrink-0" />
                                 <span className="truncate">{slot.startTime} – {slot.endTime}</span>
                                 {slot.isRecurring && (
-                                  <RefreshCw className="h-2.5 w-2.5 shrink-0 text-primary/60" title={t.calendar.recurringBadge} />
+                                  <RefreshCw className="h-2.5 w-2.5 shrink-0 text-primary/60" />
                                 )}
                               </div>
                               {!slot.isBooked && (

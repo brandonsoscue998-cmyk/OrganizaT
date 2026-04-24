@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Phone, StickyNote, Calendar, Package, Pencil, Loader2 } from "lucide-react";
 import { Link } from "wouter";
@@ -46,12 +47,22 @@ const packSchema = z.object({
 
 type PackForm = z.infer<typeof packSchema>;
 
+const editSchema = z.object({
+  name: z.string().min(1, "El nombre es obligatorio"),
+  phone: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  paymentMode: z.enum(["per_session", "monthly"]),
+});
+
+type EditForm = z.infer<typeof editSchema>;
+
 export default function ClientDetail() {
   const [, params] = useRoute("/clients/:id");
   const id = params ? parseInt(params.id, 10) : 0;
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [packDialogOpen, setPackDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const { data: client, isLoading: clientLoading } = useGetClient(id, {
     query: { enabled: !!id, queryKey: getGetClientQueryKey(id) }
@@ -70,6 +81,32 @@ export default function ClientDetail() {
       packPrice: client?.packPrice ?? 0,
     },
   });
+
+  const { register: registerEdit, handleSubmit: handleEditSubmit, reset: resetEdit, setValue: setEditValue, watch: watchEdit, formState: { errors: editErrors } } = useForm<EditForm>({
+    resolver: zodResolver(editSchema),
+    values: {
+      name: client?.name ?? "",
+      phone: client?.phone ?? "",
+      notes: client?.notes ?? "",
+      paymentMode: (client?.paymentMode as "per_session" | "monthly") ?? "per_session",
+    },
+  });
+
+  const onEditSubmit = async (data: EditForm) => {
+    await updateClient.mutateAsync({
+      id,
+      data: {
+        name: data.name,
+        phone: data.phone ?? null,
+        notes: data.notes ?? null,
+        paymentMode: data.paymentMode,
+      },
+    });
+    queryClient.invalidateQueries({ queryKey: getGetClientQueryKey(id) });
+    queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
+    toast({ title: "Cliente actualizado" });
+    setEditDialogOpen(false);
+  };
 
   const onPackSubmit = async (data: PackForm) => {
     await updateClient.mutateAsync({
@@ -99,7 +136,7 @@ export default function ClientDetail() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
-          <div>
+          <div className="flex-1">
             {clientLoading ? (
               <Skeleton className="h-7 w-40" />
             ) : (
@@ -107,6 +144,60 @@ export default function ClientDetail() {
             )}
             <p className="text-muted-foreground text-sm">{t.clients.profile}</p>
           </div>
+          <Dialog open={editDialogOpen} onOpenChange={open => { if (!open) resetEdit(); setEditDialogOpen(open); }}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5 shrink-0" disabled={clientLoading}>
+                <Pencil className="h-3.5 w-3.5" />
+                Editar cliente
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Editar cliente</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleEditSubmit(onEditSubmit)} className="space-y-4 mt-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-name">Nombre <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="edit-name"
+                    placeholder="Nombre del cliente"
+                    {...registerEdit("name")}
+                    className={editErrors.name ? "border-destructive" : ""}
+                  />
+                  {editErrors.name && <p className="text-xs text-destructive">{editErrors.name.message}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-phone">Teléfono <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                  <Input id="edit-phone" placeholder="+34 600 000 000" {...registerEdit("phone")} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-notes">Notas <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                  <Textarea id="edit-notes" placeholder="Observaciones, objetivos..." {...registerEdit("notes")} rows={3} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Modo de pago</Label>
+                  <Select value={watchEdit("paymentMode")} onValueChange={v => setEditValue("paymentMode", v as "per_session" | "monthly")}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="per_session">Por sesión</SelectItem>
+                      <SelectItem value="monthly">Mensual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex justify-end gap-2 pt-1">
+                  <Button type="button" variant="outline" onClick={() => { resetEdit(); setEditDialogOpen(false); }}>
+                    {t.clients.cancel}
+                  </Button>
+                  <Button type="submit" disabled={updateClient.isPending}>
+                    {updateClient.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    Guardar cambios
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Información de contacto */}
@@ -136,24 +227,11 @@ export default function ClientDetail() {
                     <span className="whitespace-pre-wrap">{client.notes}</span>
                   </div>
                 ) : null}
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground shrink-0">Modo de pago:</span>
-                  <Select
-                    value={client?.paymentMode ?? "per_session"}
-                    onValueChange={async (v) => {
-                      await updateClient.mutateAsync({ id, data: { paymentMode: v as "per_session" | "monthly" } });
-                      queryClient.invalidateQueries({ queryKey: getGetClientQueryKey(id) });
-                      queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
-                    }}
-                  >
-                    <SelectTrigger className="h-7 text-xs w-36">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="per_session">Por sesión</SelectItem>
-                      <SelectItem value="monthly">Mensual</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>Modo de pago:</span>
+                  <span className="font-medium text-foreground">
+                    {client?.paymentMode === "monthly" ? "Mensual" : "Por sesión"}
+                  </span>
                 </div>
               </>
             )}
