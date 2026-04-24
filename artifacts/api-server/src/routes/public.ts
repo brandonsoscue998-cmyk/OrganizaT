@@ -16,7 +16,7 @@ router.get("/public/trainers", async (_req, res): Promise<void> => {
 
 async function findTrainer(username: string) {
   const [trainer] = await db
-    .select({ id: usersTable.id, name: usersTable.name, username: usersTable.username, role: usersTable.role, spaceName: usersTable.spaceName, pricePerSlot: usersTable.pricePerSlot })
+    .select({ id: usersTable.id, name: usersTable.name, username: usersTable.username, role: usersTable.role, spaceName: usersTable.spaceName, pricePerSlot: usersTable.pricePerSlot, referralsEnabled: usersTable.referralsEnabled })
     .from(usersTable)
     .where(eq(usersTable.username, username));
   return trainer ?? null;
@@ -44,7 +44,7 @@ router.get("/public/u/:username", async (req, res): Promise<void> => {
     .where(and(...conditions))
     .orderBy(availabilityTable.date, availabilityTable.startTime);
 
-  res.json({ trainer: { name: trainer.name, username: trainer.username, role: trainer.role, spaceName: trainer.spaceName, pricePerSlot: trainer.pricePerSlot }, slots });
+  res.json({ trainer: { name: trainer.name, username: trainer.username, role: trainer.role, spaceName: trainer.spaceName, pricePerSlot: trainer.pricePerSlot, referralsEnabled: trainer.referralsEnabled }, slots });
 });
 
 router.get("/public/u/:username/my-info", async (req, res): Promise<void> => {
@@ -70,6 +70,7 @@ router.post("/public/u/:username/book/:slotId", async (req, res): Promise<void> 
   const rawName = req.body?.name;
   const rawPhone = req.body?.phone;
   const rawSlotStart = req.body?.slotStartTime;
+  const rawRef = typeof req.body?.ref === "string" && req.body.ref.trim() ? req.body.ref.trim() : null;
   const people = typeof req.body?.people === "number" && req.body.people >= 1 ? Math.floor(req.body.people) : 1;
   const isGroup = people > 2;
   if (!rawName || typeof rawName !== "string" || rawName.trim().length === 0) {
@@ -118,7 +119,6 @@ router.post("/public/u/:username/book/:slotId", async (req, res): Promise<void> 
           packPrice: "0",
           totalSessions: 0,
           remainingSessions: 0,
-          paid: false,
         })
         .returning();
     }
@@ -133,6 +133,8 @@ router.post("/public/u/:username/book/:slotId", async (req, res): Promise<void> 
     const sessionDate = new Date(`${slot.date}T${slotStartOverride ?? slot.startTime}:00`);
     const isOwner = trainer.role === "owner";
     const sessionPrice = isOwner && trainer.pricePerSlot ? trainer.pricePerSlot : "0";
+    const refSource = trainer.referralsEnabled && rawRef ? "referral" : null;
+    const source = refSource ?? (isOwner ? "space" : "booking");
     const [sess] = await tx
       .insert(sessionsTable)
       .values({
@@ -142,7 +144,7 @@ router.post("/public/u/:username/book/:slotId", async (req, res): Promise<void> 
         status: "pending",
         price: sessionPrice,
         paid: false,
-        source: isOwner ? "space" : "booking",
+        source,
         people,
         isGroup,
       })

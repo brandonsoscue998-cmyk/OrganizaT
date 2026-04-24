@@ -107,8 +107,16 @@ router.get("/auth/me", requireAuth, async (req, res): Promise<void> => {
     role: user.role,
     spaceName: user.spaceName,
     pricePerSlot: user.pricePerSlot,
+    referralsEnabled: user.referralsEnabled,
     createdAt: user.createdAt,
   });
+});
+
+router.patch("/auth/me/referrals", requireAuth, async (req, res): Promise<void> => {
+  const enabled = req.body?.enabled;
+  if (typeof enabled !== "boolean") { res.status(400).json({ error: "enabled must be boolean" }); return; }
+  await db.update(usersTable).set({ referralsEnabled: enabled }).where(eq(usersTable.id, req.user!.userId));
+  res.json({ referralsEnabled: enabled });
 });
 
 router.patch("/auth/me/space", requireAuth, async (req, res): Promise<void> => {

@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Users, Calendar, TrendingUp, AlertCircle, AlertTriangle, CalendarX, Banknote, Link2, Copy, Building2, Pencil, Check, X } from "lucide-react";
+import { Users, Calendar, TrendingUp, AlertCircle, AlertTriangle, CalendarX, Banknote, Link2, Copy, Building2, Pencil, Check, X, Share2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
 import { Link } from "wouter";
 import { t, locale, formatCurrency, statusLabel } from "@/lib/i18n";
@@ -141,10 +142,23 @@ export default function Dashboard() {
     queryFn: () => customFetch<AlertsData>("/api/alerts"),
   });
   const queryClient = useQueryClient();
-  const { data: me } = useQuery<{ username?: string | null; role?: string | null; spaceName?: string | null; pricePerSlot?: string | null }>({
+  const { data: me } = useQuery<{ username?: string | null; role?: string | null; spaceName?: string | null; pricePerSlot?: string | null; referralsEnabled?: boolean }>({
     queryKey: ["me"],
-    queryFn: () => customFetch<{ username?: string | null; role?: string | null; spaceName?: string | null; pricePerSlot?: string | null }>("/api/auth/me"),
+    queryFn: () => customFetch<{ username?: string | null; role?: string | null; spaceName?: string | null; pricePerSlot?: string | null; referralsEnabled?: boolean }>("/api/auth/me"),
   });
+
+  const [referralToggling, setReferralToggling] = useState(false);
+  const handleReferralToggle = async (enabled: boolean) => {
+    setReferralToggling(true);
+    try {
+      await fetch(`${BASE}/api/auth/me/referrals`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+        body: JSON.stringify({ enabled }),
+      });
+      queryClient.invalidateQueries({ queryKey: ["me"] });
+    } finally { setReferralToggling(false); }
+  };
 
   const allAlerts: { key: string; icon: React.ComponentType<{ className?: string }>; text: string; href: string; variant: "yellow" | "red" }[] = [];
   if (alerts) {
@@ -231,6 +245,28 @@ export default function Dashboard() {
                 >
                   <Copy className="h-3.5 w-3.5 text-muted-foreground" />
                 </button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Referral toggle — trainers & owners only */}
+        {me?.username && (
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                  <Share2 className="h-4 w-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">Activar sistema de referidos</p>
+                  <p className="text-xs text-muted-foreground">Tus clientes podrán invitar a amigos con un enlace personalizado</p>
+                </div>
+                <Switch
+                  checked={me.referralsEnabled ?? false}
+                  onCheckedChange={handleReferralToggle}
+                  disabled={referralToggling}
+                />
               </div>
             </CardContent>
           </Card>

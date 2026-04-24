@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useGetMe } from "@workspace/api-client-react";
 import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
 import { es } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Loader2, CheckCircle2, CalendarCheck, LogOut, Search, Building2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, CheckCircle2, CalendarCheck, LogOut, Search, Building2, Share2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import { t } from "@/lib/i18n";
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 type Slot = { id: number; date: string; startTime: string; endTime: string; isBooked: boolean; bookedSubSlots?: string };
-type Trainer = { name: string; username: string | null; role?: string | null; spaceName?: string | null; pricePerSlot?: string | null };
+type Trainer = { name: string; username: string | null; role?: string | null; spaceName?: string | null; pricePerSlot?: string | null; referralsEnabled?: boolean | null };
 type TrainerOption = { id: number; name: string; username: string | null; email: string; role: string; spaceName?: string | null; pricePerSlot?: string | null };
 
 const DAYS_ES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
@@ -87,6 +87,7 @@ export default function ClientBook() {
   const [booked, setBooked] = useState(false);
   const [bookedSlot, setBookedSlot] = useState<Slot | null>(null);
   const [bookedSubStart, setBookedSubStart] = useState<string | null>(null);
+  const [referralCopied, setReferralCopied] = useState(false);
 
   const expandSlot = (startTime: string, endTime: string, durationMins: number): string[] => {
     const [sh, sm] = startTime.split(":").map(Number);
@@ -421,6 +422,32 @@ export default function ClientBook() {
               {bookLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               {t.clientView.book}
             </Button>
+          </div>
+        )}
+        {/* Invitar a un amigo — only when referrals are enabled */}
+        {trainer?.referralsEnabled && trainer.username && me?.name && (
+          <div className="rounded-xl border bg-card p-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <Share2 className="h-4 w-4 text-primary" />
+              <p className="text-sm font-semibold">Invitar a un amigo</p>
+            </div>
+            <p className="text-xs text-muted-foreground">Comparte este enlace con un amigo para que reserve una sesión con {trainer.name}.</p>
+            <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
+              <p className="text-xs font-mono flex-1 truncate text-foreground">
+                {window.location.origin}{BASE}/u/{trainer.username}?ref={encodeURIComponent(me.name)}
+              </p>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}${BASE}/u/${trainer.username}?ref=${encodeURIComponent(me!.name!)}`);
+                  setReferralCopied(true);
+                  setTimeout(() => setReferralCopied(false), 2000);
+                }}
+                className="shrink-0 h-7 w-7 rounded-md border flex items-center justify-center hover:bg-muted transition-colors"
+              >
+                <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+            </div>
+            {referralCopied && <p className="text-xs text-green-600 font-medium">¡Enlace copiado!</p>}
           </div>
         )}
       </div>
