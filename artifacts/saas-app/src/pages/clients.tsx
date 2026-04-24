@@ -22,9 +22,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, ChevronRight, Users, Package, MessageCircle } from "lucide-react";
+import { Plus, Trash2, ChevronRight, Users, Package, MessageCircle, AlertTriangle } from "lucide-react";
 import { Loader2 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { t } from "@/lib/i18n";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -61,8 +61,28 @@ export default function Clients() {
     defaultValues: { totalSessions: 0, packPrice: 0, paymentMode: "per_session" },
   });
 
+  const [, setLocation] = useLocation();
   const [showNameDropdown, setShowNameDropdown] = useState(false);
+  const [dismissedDuplicateName, setDismissedDuplicateName] = useState("");
   const nameValue = watch("name") ?? "";
+  const phoneValue = watch("phone") ?? "";
+
+  const duplicateClient = useMemo(() => {
+    if (!clients?.length) return null;
+    const nameTrimmed = nameValue.trim();
+    const phoneTrimmed = phoneValue.trim();
+    // Phone exact match takes priority
+    if (phoneTrimmed.length >= 6) {
+      const byPhone = clients.find(c => c.phone && c.phone.replace(/\D/g, "") === phoneTrimmed.replace(/\D/g, ""));
+      if (byPhone) return byPhone;
+    }
+    // Name partial match (at least 2 chars)
+    if (nameTrimmed.length >= 2) {
+      return clients.find(c => c.name.toLowerCase().includes(nameTrimmed.toLowerCase())) ?? null;
+    }
+    return null;
+  }, [clients, nameValue, phoneValue]);
+
   const { data: allUsers = [] } = useQuery<AppUser[]>({
     queryKey: ["users-admin"],
     queryFn: async () => {
@@ -134,7 +154,7 @@ export default function Clients() {
             <h1 className="text-2xl font-bold tracking-tight">{t.clients.title}</h1>
             <p className="text-muted-foreground text-sm">{t.clients.subtitle}</p>
           </div>
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) setDismissedDuplicateName(""); }}>
             <DialogTrigger asChild>
               <Button
                 size="sm"
@@ -188,6 +208,46 @@ export default function Clients() {
                   <Label htmlFor="phone">{t.clients.phone} <span className="text-muted-foreground">{t.clients.phoneOptional}</span></Label>
                   <Input id="phone" placeholder={t.clients.phonePlaceholder} {...register("phone")} />
                 </div>
+
+                {duplicateClient && duplicateClient.name !== dismissedDuplicateName && (
+                  <div className="rounded-md border border-amber-200 bg-amber-50 p-3 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-amber-800">Este cliente ya existe</p>
+                        <p className="text-xs text-amber-700 mt-0.5">
+                          <span className="font-medium">{duplicateClient.name}</span>
+                          {duplicateClient.phone && (
+                            <span className="ml-2 text-amber-600">{duplicateClient.phone}</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 pt-0.5">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs border-amber-300 text-amber-800 hover:bg-amber-100"
+                        onClick={() => {
+                          setOpen(false);
+                          setDismissedDuplicateName("");
+                          setLocation(`/clients/${duplicateClient.id}`);
+                        }}
+                      >
+                        Usar este cliente
+                      </Button>
+                      <button
+                        type="button"
+                        className="text-xs text-amber-600 hover:text-amber-800 underline underline-offset-2"
+                        onClick={() => setDismissedDuplicateName(duplicateClient.name)}
+                      >
+                        Crear de todas formas
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-1.5">
                   <Label htmlFor="notes">{t.clients.notes} <span className="text-muted-foreground">{t.clients.notesOptional}</span></Label>
                   <Textarea id="notes" placeholder={t.clients.notesPlaceholder} {...register("notes")} rows={3} />
