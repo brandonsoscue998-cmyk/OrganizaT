@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   useListClients,
   useCreateClient,
@@ -27,6 +27,16 @@ import { Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { t } from "@/lib/i18n";
 
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+type AppUser = { id: number; name: string; email: string; role: string };
+const ROLE_LABEL: Record<string, string> = { client: "Cliente", trainer: "Entrenador", owner: "Emprendedor" };
+const ROLE_BADGE: Record<string, string> = {
+  client: "bg-blue-50 text-blue-700 border-blue-200",
+  trainer: "bg-primary/10 text-primary border-primary/20",
+  owner: "bg-purple-50 text-purple-700 border-purple-200",
+};
+
 const clientSchema = z.object({
   name: z.string().min(1, t.clients.nameRequired),
   phone: z.string().optional().nullable(),
@@ -50,6 +60,22 @@ export default function Clients() {
     resolver: zodResolver(clientSchema),
     defaultValues: { totalSessions: 0, packPrice: 0, paymentMode: "per_session" },
   });
+
+  const [showNameDropdown, setShowNameDropdown] = useState(false);
+  const nameValue = watch("name") ?? "";
+  const { data: allUsers = [] } = useQuery<AppUser[]>({
+    queryKey: ["users-admin"],
+    queryFn: async () => {
+      const res = await fetch(`${BASE}/api/users`, { headers: { Authorization: `Bearer ${localStorage.getItem("auth_token")}` } });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    staleTime: 60_000,
+  });
+  const nameMatches = nameValue.trim()
+    ? allUsers.filter(u => u.name.toLowerCase().includes(nameValue.toLowerCase()))
+    : allUsers;
+  const nameReg = register("name");
 
   const { data: allSessions } = useListSessions({}, { query: { queryKey: getListSessionsQueryKey() } });
 
@@ -125,7 +151,37 @@ export default function Clients() {
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="name">{t.clients.fullName}</Label>
-                  <Input id="name" placeholder={t.clients.fullNamePlaceholder} {...register("name")} className={errors.name ? "border-destructive" : ""} />
+                  <div className="relative">
+                    <Input
+                      id="name"
+                      placeholder={t.clients.fullNamePlaceholder}
+                      {...nameReg}
+                      onFocus={() => setShowNameDropdown(true)}
+                      onBlur={e => { nameReg.onBlur(e); setTimeout(() => setShowNameDropdown(false), 150); }}
+                      autoComplete="off"
+                      className={errors.name ? "border-destructive" : ""}
+                    />
+                    {showNameDropdown && nameMatches.length > 0 && (
+                      <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-y-auto">
+                        {nameMatches.slice(0, 8).map(u => (
+                          <button
+                            key={u.id}
+                            type="button"
+                            className="w-full flex items-center justify-between gap-3 px-3 py-2 text-sm hover:bg-muted transition-colors text-left"
+                            onMouseDown={() => {
+                              setValue("name", u.name, { shouldValidate: true });
+                              setShowNameDropdown(false);
+                            }}
+                          >
+                            <span className="truncate">{u.name}</span>
+                            <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded-full border ${ROLE_BADGE[u.role] ?? "bg-muted text-muted-foreground border-border"}`}>
+                              {ROLE_LABEL[u.role] ?? u.role}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
                 </div>
                 <div className="space-y-1.5">
