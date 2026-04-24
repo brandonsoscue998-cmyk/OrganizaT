@@ -42,7 +42,12 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="text-2xl font-bold tracking-tight">{t.app.name}</div>
+          <div className="flex items-center justify-center gap-2.5 mb-1">
+            <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center shrink-0">
+              <span className="text-primary-foreground text-sm font-bold leading-none">OT</span>
+            </div>
+            <span className="text-2xl font-bold tracking-tight">Organiza<span className="text-primary">T</span></span>
+          </div>
           <p className="text-muted-foreground text-sm mt-1">{t.app.tagline}</p>
         </div>
         <Card>

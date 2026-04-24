@@ -146,7 +146,7 @@ export default function PublicBooking() {
             </CardContent>
           </Card>
           <p className="text-xs text-muted-foreground mt-5">Tu profesional se pondrá en contacto contigo pronto.</p>
-          <p className="text-[11px] text-muted-foreground/50 mt-8">Powered by <span className="font-semibold">OrganizaT</span></p>
+          <p className="text-[11px] text-muted-foreground/50 mt-8">Powered by <span className="font-semibold">Organiza<span className="text-primary/70">T</span></span></p>
         </div>
       </div>
     );
@@ -305,7 +305,7 @@ export default function PublicBooking() {
         )}
 
         <p className="text-center text-[11px] text-muted-foreground/50 mt-12">
-          Powered by <span className="font-semibold">OrganizaT</span>
+          Powered by <span className="font-semibold">Organiza<span className="text-primary/70">T</span></span>
         </p>
       </div>
     </div>

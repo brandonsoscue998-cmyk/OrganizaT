@@ -73,7 +73,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-[100dvh] flex flex-col md:flex-row bg-background">
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 border-b bg-card">
-        <div className="font-semibold text-lg tracking-tight">{t.app.name}</div>
+        <div className="flex items-center gap-2">
+          <div className="h-6 w-6 rounded bg-primary flex items-center justify-center shrink-0">
+            <span className="text-primary-foreground text-[10px] font-bold leading-none">OT</span>
+          </div>
+          <span className="font-bold text-lg tracking-tight">Organiza<span className="text-primary">T</span></span>
+        </div>
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="md:hidden">
@@ -81,7 +86,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-[240px] flex flex-col gap-4">
-            <div className="font-semibold text-lg tracking-tight mb-4">{t.app.name}</div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="h-6 w-6 rounded bg-primary flex items-center justify-center shrink-0">
+                <span className="text-primary-foreground text-[10px] font-bold leading-none">OT</span>
+              </div>
+              <span className="font-bold text-lg tracking-tight">Organiza<span className="text-primary">T</span></span>
+            </div>
             <nav className="flex flex-col gap-2">
               <NavItems />
             </nav>
@@ -99,7 +109,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-64 border-r bg-card p-4">
-        <div className="font-semibold text-xl tracking-tight mb-8 px-2">{t.app.name}</div>
+        <div className="flex items-center gap-2.5 mb-8 px-2">
+          <div className="h-7 w-7 rounded-md bg-primary flex items-center justify-center shrink-0">
+            <span className="text-primary-foreground text-xs font-bold leading-none">OT</span>
+          </div>
+          <span className="font-bold text-xl tracking-tight">Organiza<span className="text-primary">T</span></span>
+        </div>
         <nav className="flex flex-col gap-2 flex-1">
           <NavItems />
         </nav>
