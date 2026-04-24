@@ -16,10 +16,11 @@ import { t, locale, formatCurrency, statusLabel } from "@/lib/i18n";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-function SpaceSettingsCard({ spaceName, pricePerSlot, onSaved }: { spaceName?: string | null; pricePerSlot?: string | null; onSaved: () => void }) {
+function SpaceSettingsCard({ spaceName, pricePerSlot, groupExtraPrice, onSaved }: { spaceName?: string | null; pricePerSlot?: string | null; groupExtraPrice?: string | null; onSaved: () => void }) {
   const [editing, setEditing] = useState(!spaceName);
   const [name, setName] = useState(spaceName ?? "");
   const [price, setPrice] = useState(pricePerSlot ?? "0");
+  const [groupExtra, setGroupExtra] = useState(groupExtraPrice ?? "0");
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -28,7 +29,7 @@ function SpaceSettingsCard({ spaceName, pricePerSlot, onSaved }: { spaceName?: s
       await fetch(`${BASE}/api/auth/me/space`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
-        body: JSON.stringify({ spaceName: name, pricePerSlot: price }),
+        body: JSON.stringify({ spaceName: name, pricePerSlot: price, groupExtraPrice: groupExtra }),
       });
       setEditing(false);
       onSaved();
@@ -59,12 +60,16 @@ function SpaceSettingsCard({ spaceName, pricePerSlot, onSaved }: { spaceName?: s
               <Label className="text-xs">Precio por hora (€)</Label>
               <Input type="number" min="0" step="0.01" placeholder="20" value={price} onChange={e => setPrice(e.target.value)} className="h-8 text-sm w-32" />
             </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Extra precio grupal (€)</Label>
+              <Input type="number" min="0" step="0.01" placeholder="0" value={groupExtra} onChange={e => setGroupExtra(e.target.value)} className="h-8 text-sm w-32" />
+            </div>
             <div className="flex gap-2">
               <Button size="sm" className="h-7 text-xs gap-1" onClick={handleSave} disabled={saving}>
                 <Check className="h-3 w-3" /> Guardar
               </Button>
               {spaceName && (
-                <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => { setEditing(false); setName(spaceName ?? ""); setPrice(pricePerSlot ?? "0"); }}>
+                <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => { setEditing(false); setName(spaceName ?? ""); setPrice(pricePerSlot ?? "0"); setGroupExtra(groupExtraPrice ?? "0"); }}>
                   <X className="h-3 w-3" /> Cancelar
                 </Button>
               )}
@@ -74,6 +79,9 @@ function SpaceSettingsCard({ spaceName, pricePerSlot, onSaved }: { spaceName?: s
           <div className="text-sm space-y-0.5">
             <p className="font-semibold">{spaceName || <span className="text-muted-foreground italic">Sin nombre</span>}</p>
             <p className="text-muted-foreground">{Number(pricePerSlot ?? 0) > 0 ? `${Number(pricePerSlot).toFixed(2).replace(".", ",")}€/hora` : "Sin precio configurado"}</p>
+            {Number(groupExtraPrice ?? 0) > 0 && (
+              <p className="text-muted-foreground text-xs">Extra grupal: +{Number(groupExtraPrice).toFixed(2).replace(".", ",")}€</p>
+            )}
           </div>
         )}
       </CardContent>
@@ -142,9 +150,9 @@ export default function Dashboard() {
     queryFn: () => customFetch<AlertsData>("/api/alerts"),
   });
   const queryClient = useQueryClient();
-  const { data: me } = useQuery<{ username?: string | null; role?: string | null; spaceName?: string | null; pricePerSlot?: string | null; referralsEnabled?: boolean }>({
+  const { data: me } = useQuery<{ username?: string | null; role?: string | null; spaceName?: string | null; pricePerSlot?: string | null; groupExtraPrice?: string | null; referralsEnabled?: boolean }>({
     queryKey: ["me"],
-    queryFn: () => customFetch<{ username?: string | null; role?: string | null; spaceName?: string | null; pricePerSlot?: string | null; referralsEnabled?: boolean }>("/api/auth/me"),
+    queryFn: () => customFetch<{ username?: string | null; role?: string | null; spaceName?: string | null; pricePerSlot?: string | null; groupExtraPrice?: string | null; referralsEnabled?: boolean }>("/api/auth/me"),
   });
 
   const [referralToggling, setReferralToggling] = useState(false);
@@ -208,6 +216,7 @@ export default function Dashboard() {
           <SpaceSettingsCard
             spaceName={me.spaceName}
             pricePerSlot={me.pricePerSlot}
+            groupExtraPrice={me.groupExtraPrice}
             onSaved={() => queryClient.invalidateQueries({ queryKey: ["me"] })}
           />
         )}

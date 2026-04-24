@@ -107,6 +107,7 @@ router.get("/auth/me", requireAuth, async (req, res): Promise<void> => {
     role: user.role,
     spaceName: user.spaceName,
     pricePerSlot: user.pricePerSlot,
+    groupExtraPrice: user.groupExtraPrice,
     referralsEnabled: user.referralsEnabled,
     createdAt: user.createdAt,
   });
@@ -120,13 +121,14 @@ router.patch("/auth/me/referrals", requireAuth, async (req, res): Promise<void> 
 });
 
 router.patch("/auth/me/space", requireAuth, async (req, res): Promise<void> => {
-  const { spaceName, pricePerSlot } = req.body ?? {};
-  const updateData: { spaceName?: string | null; pricePerSlot?: string } = {};
+  const { spaceName, pricePerSlot, groupExtraPrice } = req.body ?? {};
+  const updateData: { spaceName?: string | null; pricePerSlot?: string; groupExtraPrice?: string } = {};
   if (typeof spaceName === "string") updateData.spaceName = spaceName.trim() || null;
   if (typeof pricePerSlot === "string" || typeof pricePerSlot === "number") updateData.pricePerSlot = String(pricePerSlot);
+  if (typeof groupExtraPrice === "string" || typeof groupExtraPrice === "number") updateData.groupExtraPrice = String(groupExtraPrice);
   if (Object.keys(updateData).length === 0) { res.status(400).json({ error: "Nothing to update" }); return; }
   const [user] = await db.update(usersTable).set(updateData).where(eq(usersTable.id, req.user!.userId)).returning();
-  res.json({ spaceName: user.spaceName, pricePerSlot: user.pricePerSlot });
+  res.json({ spaceName: user.spaceName, pricePerSlot: user.pricePerSlot, groupExtraPrice: user.groupExtraPrice });
 });
 
 export default router;

@@ -23,6 +23,7 @@ type Trainer = {
   role?: string;
   spaceName?: string | null;
   pricePerSlot?: string | null;
+  groupExtraPrice?: string | null;
 };
 
 const DAYS_ES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
@@ -40,6 +41,7 @@ export default function PublicBooking() {
   const [bookingSlotId, setBookingSlotId] = useState<number | null>(null);
   const [bookName, setBookName] = useState("");
   const [bookPhone, setBookPhone] = useState("");
+  const [bookPeople, setBookPeople] = useState(1);
   const [bookLoading, setBookLoading] = useState(false);
   const [bookError, setBookError] = useState("");
   const [booked, setBooked] = useState(false);
@@ -78,6 +80,7 @@ export default function PublicBooking() {
     setBookingSlotId(slot.id);
     setBookName("");
     setBookPhone("");
+    setBookPeople(1);
     setBookError("");
   }
 
@@ -89,7 +92,7 @@ export default function PublicBooking() {
       const res = await fetch(`${BASE}/api/public/u/${username}/book/${bookingSlotId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: bookName.trim(), phone: bookPhone.trim() || undefined }),
+        body: JSON.stringify({ name: bookName.trim(), phone: bookPhone.trim() || undefined, people: bookPeople }),
       });
       if (res.status === 409) { setBookError("Este horario ya ha sido reservado."); return; }
       if (!res.ok) { const d = await res.json(); setBookError(d.error ?? "Error al reservar."); return; }
@@ -156,6 +159,9 @@ export default function PublicBooking() {
   const initials = trainer ? trainer.name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase() : "?";
   const subtitle = trainer?.role === "owner" && trainer.spaceName ? trainer.spaceName : "Entrenador Personal";
   const price = trainer?.pricePerSlot ? Number(trainer.pricePerSlot) : null;
+  const groupExtra = trainer?.groupExtraPrice ? Number(trainer.groupExtraPrice) : 0;
+  const bookIsGroup = bookPeople > 2;
+  const totalPrice = price !== null ? price + (bookIsGroup ? groupExtra : 0) : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
@@ -273,6 +279,42 @@ export default function PublicBooking() {
                                 onChange={e => setBookPhone(e.target.value)}
                                 className="h-7 text-xs"
                               />
+                              {trainer?.role === "owner" && (
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  max="20"
+                                  placeholder="Personas"
+                                  value={bookPeople}
+                                  onChange={e => setBookPeople(Math.max(1, parseInt(e.target.value) || 1))}
+                                  className="h-7 text-xs w-full"
+                                />
+                              )}
+                              {totalPrice !== null && totalPrice > 0 && (
+                                <div className="text-[10px] bg-muted/40 rounded p-1.5 space-y-0.5">
+                                  {bookIsGroup && groupExtra > 0 ? (
+                                    <>
+                                      <div className="flex justify-between text-muted-foreground">
+                                        <span>Precio base:</span>
+                                        <span>{price?.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}</span>
+                                      </div>
+                                      <div className="flex justify-between text-primary">
+                                        <span>Extra grupal:</span>
+                                        <span>+{groupExtra.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}</span>
+                                      </div>
+                                      <div className="flex justify-between font-semibold border-t border-border pt-0.5 mt-0.5">
+                                        <span>Total:</span>
+                                        <span>{totalPrice.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}</span>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="flex justify-between font-medium">
+                                      <span>Precio:</span>
+                                      <span>{totalPrice.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                               {bookError && <p className="text-[10px] text-destructive leading-tight">{bookError}</p>}
                               <div className="flex gap-1">
                                 <Button size="sm" className="flex-1 h-8 text-xs font-semibold" onClick={handleBook} disabled={bookLoading}>

@@ -16,7 +16,7 @@ router.get("/public/trainers", async (_req, res): Promise<void> => {
 
 async function findTrainer(username: string) {
   const [trainer] = await db
-    .select({ id: usersTable.id, name: usersTable.name, username: usersTable.username, role: usersTable.role, spaceName: usersTable.spaceName, pricePerSlot: usersTable.pricePerSlot, referralsEnabled: usersTable.referralsEnabled })
+    .select({ id: usersTable.id, name: usersTable.name, username: usersTable.username, role: usersTable.role, spaceName: usersTable.spaceName, pricePerSlot: usersTable.pricePerSlot, groupExtraPrice: usersTable.groupExtraPrice, referralsEnabled: usersTable.referralsEnabled })
     .from(usersTable)
     .where(eq(usersTable.username, username));
   return trainer ?? null;
@@ -44,7 +44,7 @@ router.get("/public/u/:username", async (req, res): Promise<void> => {
     .where(and(...conditions))
     .orderBy(availabilityTable.date, availabilityTable.startTime);
 
-  res.json({ trainer: { name: trainer.name, username: trainer.username, role: trainer.role, spaceName: trainer.spaceName, pricePerSlot: trainer.pricePerSlot, referralsEnabled: trainer.referralsEnabled }, slots });
+  res.json({ trainer: { name: trainer.name, username: trainer.username, role: trainer.role, spaceName: trainer.spaceName, pricePerSlot: trainer.pricePerSlot, groupExtraPrice: trainer.groupExtraPrice, referralsEnabled: trainer.referralsEnabled }, slots });
 });
 
 router.get("/public/u/:username/my-info", async (req, res): Promise<void> => {
@@ -132,7 +132,9 @@ router.post("/public/u/:username/book/:slotId", async (req, res): Promise<void> 
 
     const sessionDate = new Date(`${slot.date}T${slotStartOverride ?? slot.startTime}:00`);
     const isOwner = trainer.role === "owner";
-    const sessionPrice = isOwner && trainer.pricePerSlot ? trainer.pricePerSlot : "0";
+    const basePrice = isOwner && trainer.pricePerSlot ? Number(trainer.pricePerSlot) : 0;
+    const extraPrice = isGroup && trainer.groupExtraPrice ? Number(trainer.groupExtraPrice) : 0;
+    const sessionPrice = String(basePrice + extraPrice);
     const refSource = trainer.referralsEnabled && rawRef ? "referral" : null;
     const source = refSource ?? (isOwner ? "space" : "booking");
     const [sess] = await tx
