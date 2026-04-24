@@ -4,6 +4,15 @@ import { db, usersTable, availabilityTable, clientsTable, sessionsTable } from "
 
 const router: IRouter = Router();
 
+router.get("/public/trainers", async (_req, res): Promise<void> => {
+  const trainers = await db
+    .select({ id: usersTable.id, name: usersTable.name, username: usersTable.username, email: usersTable.email })
+    .from(usersTable)
+    .where(eq(usersTable.role, "trainer"))
+    .orderBy(usersTable.name);
+  res.json(trainers);
+});
+
 
 async function findTrainer(username: string) {
   const [trainer] = await db

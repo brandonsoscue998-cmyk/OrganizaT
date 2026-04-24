@@ -1,8 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useGetMe } from "@workspace/api-client-react";
 import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
 import { es } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Loader2, CheckCircle2, CalendarCheck, LogOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, CheckCircle2, CalendarCheck, LogOut, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 type Slot = { id: number; date: string; startTime: string; endTime: string; isBooked: boolean };
 type Trainer = { name: string; username: string | null };
+type TrainerOption = { id: number; name: string; username: string | null; email: string };
 
 const DAYS_ES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
@@ -25,6 +26,45 @@ export default function ClientBook() {
   const [loading, setLoading] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
+
+  const [allTrainers, setAllTrainers] = useState<TrainerOption[]>([]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fetch(`${BASE}/api/public/trainers`)
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setAllTrainers(data); })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const filteredTrainers = trainerInput.trim()
+    ? allTrainers.filter(tr =>
+        tr.name.toLowerCase().includes(trainerInput.toLowerCase()) ||
+        tr.email.toLowerCase().includes(trainerInput.toLowerCase()) ||
+        (tr.username ?? "").toLowerCase().includes(trainerInput.toLowerCase())
+      )
+    : allTrainers;
+
+  const handleSelectTrainer = async (tr: TrainerOption) => {
+    if (!tr.username) return;
+    setTrainerInput(tr.name);
+    setUsername(tr.username);
+    setDropdownOpen(false);
+    setSelectedSlot(null);
+    setBooked(false);
+    await fetchSlots(tr.username);
+  };
 
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [phone, setPhone] = useState("");
@@ -160,18 +200,49 @@ export default function ClientBook() {
         </div>
 
         {/* Trainer search */}
-        <div className="space-y-2">
+        <div className="space-y-2" ref={searchRef}>
           <Label>{t.clientView.trainerLabel}</Label>
-          <div className="flex gap-2">
-            <Input
-              placeholder={t.clientView.trainerPlaceholder}
-              value={trainerInput}
-              onChange={e => setTrainerInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleFind()}
-            />
-            <Button onClick={handleFind} disabled={loading || !trainerInput.trim()}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t.clientView.findButton}
-            </Button>
+          <div className="relative">
+            <div className="relative flex items-center">
+              <Search className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                className="pl-9"
+                placeholder={t.clientView.trainerPlaceholder}
+                value={trainerInput}
+                onChange={e => { setTrainerInput(e.target.value); setUsername(""); setDropdownOpen(true); setTrainer(null); setSlots([]); setNotFound(false); }}
+                onFocus={() => setDropdownOpen(true)}
+                onKeyDown={e => { if (e.key === "Enter") { setDropdownOpen(false); handleFind(); } if (e.key === "Escape") setDropdownOpen(false); }}
+                autoComplete="off"
+              />
+              {loading && <Loader2 className="absolute right-3 h-4 w-4 animate-spin text-muted-foreground" />}
+            </div>
+
+            {dropdownOpen && (
+              <div className="absolute z-10 mt-1 w-full rounded-lg border bg-card shadow-lg overflow-hidden">
+                {filteredTrainers.length === 0 ? (
+                  <div className="px-4 py-3 text-sm text-muted-foreground">No se encontraron entrenadores</div>
+                ) : (
+                  <>
+                    {!trainerInput.trim() && (
+                      <div className="px-3 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide border-b bg-muted/40">
+                        Entrenadores disponibles
+                      </div>
+                    )}
+                    {filteredTrainers.map(tr => (
+                      <button
+                        key={tr.id}
+                        type="button"
+                        onClick={() => handleSelectTrainer(tr)}
+                        className="w-full text-left px-4 py-2.5 hover:bg-muted transition-colors flex flex-col gap-0.5 border-b last:border-b-0"
+                      >
+                        <span className="text-sm font-medium">{tr.name}</span>
+                        {tr.username && <span className="text-[11px] text-muted-foreground">@{tr.username}</span>}
+                      </button>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
           </div>
           {notFound && <p className="text-sm text-destructive">{t.clientView.notFound}</p>}
         </div>
