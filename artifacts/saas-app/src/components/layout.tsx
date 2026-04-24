@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useGetMe } from "@workspace/api-client-react";
 import { Users, Calendar, LayoutDashboard, LogOut, Loader2, Menu, CalendarDays, Sun, Building2, UserCog } from "lucide-react";
 import { Button } from "./ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "./ui/sheet";
 import { t } from "@/lib/i18n";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -22,6 +22,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
       setLocation("/login");
     }
   }, [user, isLoading, setLocation]);
+
+  const [mobileOpen, setMobileOpen] = React.useState(false);
+  React.useEffect(() => {
+    setMobileOpen(false);
+  }, [location]);
 
   const handleLogout = () => {
     localStorage.removeItem("auth_token");
@@ -106,26 +111,33 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
           <span className="font-bold text-lg tracking-tight">Organiza<span className="text-primary">T</span></span>
         </div>
-        <Sheet>
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="md:hidden">
+            <Button variant="ghost" size="icon" className="md:hidden" aria-label="Abrir menú">
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-[240px] flex flex-col gap-4 bg-muted/40">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="h-6 w-6 rounded bg-primary flex items-center justify-center shrink-0">
-                <span className="text-primary-foreground text-[10px] font-bold leading-none">OT</span>
+          <SheetContent
+            side="left"
+            className="w-[80vw] max-w-[320px] p-0 gap-0 bg-background flex flex-col rounded-r-2xl border-r border-border/70 shadow-2xl"
+          >
+            <SheetTitle className="sr-only">OrganizaT</SheetTitle>
+            <SheetDescription className="sr-only">Menú de navegación</SheetDescription>
+            <div className="flex items-center gap-2.5 px-4 h-14 border-b border-border/70 shrink-0">
+              <div className="h-7 w-7 rounded-md bg-primary flex items-center justify-center shrink-0">
+                <span className="text-primary-foreground text-xs font-bold leading-none">OT</span>
               </div>
               <span className="font-bold text-lg tracking-tight">Organiza<span className="text-primary">T</span></span>
             </div>
-            <nav className="flex flex-col gap-0.5">
+            <nav className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-1">
               <NavItems />
             </nav>
-            <div className="mt-auto">
-              <div className="text-sm font-medium mb-1 truncate">{user.name}</div>
-              <div className="text-xs text-muted-foreground mb-4 truncate">{user.email}</div>
-              <Button variant="outline" className="w-full justify-start gap-2" onClick={handleLogout}>
+            <div className="border-t border-border/70 px-4 py-4 shrink-0">
+              <div className="mb-3">
+                <div className="text-sm font-medium truncate">{user.name}</div>
+                <div className="text-xs text-muted-foreground truncate">{user.email}</div>
+              </div>
+              <Button variant="outline" className="w-full justify-center gap-2" onClick={handleLogout}>
                 <LogOut className="h-4 w-4" />
                 {t.nav.logout}
               </Button>
