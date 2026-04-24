@@ -37,6 +37,14 @@ const ROLE_BADGE: Record<string, string> = {
   owner: "bg-purple-50 text-purple-700 border-purple-200",
 };
 
+function getClientStatus(last: Date | null): { label: string; cls: string } | null {
+  if (!last) return null;
+  const days = (Date.now() - last.getTime()) / 86400000;
+  if (days < 7)  return { label: "Activo",   cls: "bg-green-100 text-green-700 border-green-200" };
+  if (days < 30) return { label: "Medio",    cls: "bg-yellow-100 text-yellow-700 border-yellow-200" };
+  return           { label: "Inactivo", cls: "bg-red-100 text-red-700 border-red-200" };
+}
+
 const clientSchema = z.object({
   name: z.string().min(1, t.clients.nameRequired),
   phone: z.string().optional().nullable(),
@@ -99,16 +107,36 @@ export default function Clients() {
 
   const { data: allSessions } = useListSessions({}, { query: { queryKey: getListSessionsQueryKey() } });
 
-  const lastSessionByClient = useMemo(() => {
-    const map = new Map<number, Date>();
+  const clientInsights = useMemo(() => {
+    const map = new Map<number, { revenue: number; count: number; last: Date | null }>();
     for (const s of allSessions ?? []) {
       if (!s.clientId) continue;
+      const ins = map.get(s.clientId) ?? { revenue: 0, count: 0, last: null };
+      ins.count++;
+      if (s.paid) ins.revenue += parseFloat(String(s.price) || "0");
       const d = new Date(s.date);
-      const existing = map.get(s.clientId);
-      if (!existing || d > existing) map.set(s.clientId, d);
+      if (!ins.last || d > ins.last) ins.last = d;
+      map.set(s.clientId, ins);
     }
     return map;
   }, [allSessions]);
+
+  const lastSessionByClient = useMemo(() => {
+    const map = new Map<number, Date>();
+    for (const [id, ins] of clientInsights) { if (ins.last) map.set(id, ins.last); }
+    return map;
+  }, [clientInsights]);
+
+  const [clientSort, setClientSort] = useState<"default" | "revenue">("default");
+  const displayedClients = useMemo(() => {
+    if (!clients) return [];
+    if (clientSort === "revenue") {
+      return [...clients].sort((a, b) =>
+        (clientInsights.get(b.id)?.revenue ?? 0) - (clientInsights.get(a.id)?.revenue ?? 0)
+      );
+    }
+    return clients;
+  }, [clients, clientSort, clientInsights]);
 
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
@@ -317,7 +345,25 @@ export default function Clients() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">{t.clients.allClients}</CardTitle>
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-base">{t.clients.allClients}</CardTitle>
+              {!isEmpty && (
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setClientSort("default")}
+                    className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${clientSort === "default" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
+                  >
+                    Todos
+                  </button>
+                  <button
+                    onClick={() => setClientSort("revenue")}
+                    className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${clientSort === "revenue" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
+                  >
+                    Top clientes
+                  </button>
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             {isLoading ? (
@@ -338,11 +384,13 @@ export default function Clients() {
               </div>
             ) : (
               <div className="divide-y">
-                {clients!.map(client => {
+                {displayedClients.map(client => {
                   const hasPack = client.totalSessions > 0;
                   const packExhausted = hasPack && client.remainingSessions === 0;
                   const lastSession = lastSessionByClient.get(client.id);
                   const isInactive = !!lastSession && lastSession < sevenDaysAgo;
+                  const ins = clientInsights.get(client.id);
+                  const status = getClientStatus(ins?.last ?? null);
                   return (
                     <div key={client.id} className={`flex items-center justify-between px-6 py-4 transition-colors ${isInactive ? "bg-orange-50/40 hover:bg-orange-50/60" : "hover:bg-muted/30"}`}>
                       <Link href={`/clients/${client.id}`} className="flex-1 min-w-0">
@@ -353,25 +401,35 @@ export default function Clients() {
                           <div className="min-w-0 flex-1">
                             <div className="font-medium text-sm group-hover:text-primary transition-colors">{client.name}</div>
                             {client.phone && <div className="text-xs text-muted-foreground">{client.phone}</div>}
-                            {isInactive && (
-                              <div className="text-[11px] text-orange-600 font-medium mt-0.5">● Cliente inactivo</div>
+                            {ins && ins.count > 0 && (
+                              <div className="text-[11px] text-muted-foreground mt-0.5">
+                                {ins.revenue > 0 ? `${ins.revenue % 1 === 0 ? ins.revenue.toFixed(0) : ins.revenue.toFixed(2)}€ generado · ` : ""}
+                                {ins.count} {ins.count === 1 ? "sesión" : "sesiones"}
+                              </div>
                             )}
                           </div>
-                          {hasPack && (
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {packExhausted ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-200">
-                                  <Package className="h-3 w-3" />
-                                  {t.clients.packExhausted}
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
-                                  <Package className="h-3 w-3" />
-                                  {t.clients.sessionsLabel(client.remainingSessions, client.totalSessions)}
-                                </span>
-                              )}
-                            </div>
-                          )}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {status && (
+                              <span className={`text-xs px-1.5 py-0.5 rounded-full border font-medium ${status.cls}`}>
+                                {status.label}
+                              </span>
+                            )}
+                            {hasPack && (
+                              <>
+                                {packExhausted ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-200">
+                                    <Package className="h-3 w-3" />
+                                    {t.clients.packExhausted}
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
+                                    <Package className="h-3 w-3" />
+                                    {t.clients.sessionsLabel(client.remainingSessions, client.totalSessions)}
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </div>
                           <ChevronRight className="h-4 w-4 text-muted-foreground ml-1 group-hover:text-primary transition-colors shrink-0" />
                         </div>
                       </Link>
