@@ -12,7 +12,7 @@ export function formatCurrency(amount: number): string {
 
 export const t = {
   app: {
-    name: "Practitioner",
+    name: "OrganizaT",
     tagline: "Gestiona tu consulta, clientes e ingresos",
   },
 

@@ -234,7 +234,7 @@ export default function ClientBook() {
       {/* Header */}
       <div className="bg-card border-b px-4 py-3 flex items-center justify-between">
         <div>
-          <div className="font-semibold text-base">Practitioner</div>
+          <div className="font-bold text-base tracking-tight">OrganizaT</div>
           {me && <div className="text-xs text-muted-foreground truncate">{me.name}</div>}
         </div>
         <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-1.5 text-muted-foreground">
