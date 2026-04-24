@@ -130,6 +130,8 @@ export interface Session {
   /** @nullable */
   notes?: string | null;
   source: SessionSource;
+  people: number;
+  isGroup: boolean;
   createdAt: string;
   updatedAt: string;
 }

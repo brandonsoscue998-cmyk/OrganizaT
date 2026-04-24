@@ -81,6 +81,7 @@ export default function ClientBook() {
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [selectedSubStart, setSelectedSubStart] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
+  const [people, setPeople] = useState(1);
   const [bookLoading, setBookLoading] = useState(false);
   const [bookError, setBookError] = useState("");
   const [booked, setBooked] = useState(false);
@@ -163,7 +164,7 @@ export default function ClientBook() {
       const res = await fetch(`${BASE}/api/public/u/${username}/book/${selectedSlot.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: me.name, phone: phone || "", slotStartTime: selectedSubStart ?? selectedSlot.startTime }),
+        body: JSON.stringify({ name: me.name, phone: phone || "", slotStartTime: selectedSubStart ?? selectedSlot.startTime, people }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -180,6 +181,7 @@ export default function ClientBook() {
       setBooked(true);
       setSelectedSlot(null);
       setSelectedSubStart(null);
+      setPeople(1);
     } catch {
       setBookError("Error al reservar. Inténtalo de nuevo.");
     } finally {
@@ -388,6 +390,22 @@ export default function ClientBook() {
                 className="h-9"
               />
             </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Personas</Label>
+              <input
+                type="number"
+                min="1"
+                max="99"
+                value={people}
+                onChange={e => setPeople(Math.max(1, parseInt(e.target.value) || 1))}
+                className="h-9 w-24 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            {people > 2 && (
+              <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+                Las sesiones grupales pueden tener un coste extra. El precio lo define el entrenador.
+              </div>
+            )}
             {clientInfo && clientInfo.remainingSessions > 0 ? (
               <div className="rounded-lg bg-blue-50 border border-blue-100 px-3 py-2 text-sm text-blue-800 space-y-0.5">
                 <p>Te quedan <span className="font-semibold">{clientInfo.remainingSessions}</span> sesión{clientInfo.remainingSessions !== 1 ? "es" : ""} del pack</p>

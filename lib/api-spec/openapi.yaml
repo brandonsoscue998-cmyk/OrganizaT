@@ -725,6 +725,12 @@ components:
         source:
           type: string
           enum: [manual, booking]
+        people:
+          type: integer
+          default: 1
+        isGroup:
+          type: boolean
+          default: false
         createdAt:
           type: string
           format: date-time
@@ -740,6 +746,8 @@ components:
         - price
         - paid
         - source
+        - people
+        - isGroup
         - createdAt
         - updatedAt
 

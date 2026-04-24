@@ -336,7 +336,14 @@ export default function Sessions() {
                       <Link href={`/sessions/${session.id}`} className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 cursor-pointer">
                           <div className="min-w-0">
-                            <div className="font-medium text-sm group-hover:text-primary transition-colors">{session.clientName ?? t.sessions.unknownClient}</div>
+                            <div className="font-medium text-sm group-hover:text-primary transition-colors flex items-center gap-2">
+                              {session.clientName ?? t.sessions.unknownClient}
+                              {session.isGroup && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 border border-purple-200">
+                                  Grupal ({session.people} personas)
+                                </span>
+                              )}
+                            </div>
                             <div className="text-xs text-muted-foreground">
                               {format(new Date(session.date), "d MMM yyyy 'a las' HH:mm", { locale })}
                             </div>

@@ -169,6 +169,9 @@ export const ListSessionsQueryParams = zod.object({
   clientId: zod.coerce.number().nullish(),
 });
 
+export const listSessionsResponsePeopleDefault = 1;
+export const listSessionsResponseIsGroupDefault = false;
+
 export const ListSessionsResponseItem = zod.object({
   id: zod.number(),
   userId: zod.number(),
@@ -180,6 +183,8 @@ export const ListSessionsResponseItem = zod.object({
   paid: zod.boolean(),
   notes: zod.string().nullish(),
   source: zod.enum(["manual", "booking"]),
+  people: zod.number().default(listSessionsResponsePeopleDefault),
+  isGroup: zod.boolean().default(listSessionsResponseIsGroupDefault),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -204,6 +209,9 @@ export const GetSessionParams = zod.object({
   id: zod.coerce.number(),
 });
 
+export const getSessionResponsePeopleDefault = 1;
+export const getSessionResponseIsGroupDefault = false;
+
 export const GetSessionResponse = zod.object({
   id: zod.number(),
   userId: zod.number(),
@@ -215,6 +223,8 @@ export const GetSessionResponse = zod.object({
   paid: zod.boolean(),
   notes: zod.string().nullish(),
   source: zod.enum(["manual", "booking"]),
+  people: zod.number().default(getSessionResponsePeopleDefault),
+  isGroup: zod.boolean().default(getSessionResponseIsGroupDefault),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -235,6 +245,9 @@ export const UpdateSessionBody = zod.object({
   notes: zod.string().nullish(),
 });
 
+export const updateSessionResponsePeopleDefault = 1;
+export const updateSessionResponseIsGroupDefault = false;
+
 export const UpdateSessionResponse = zod.object({
   id: zod.number(),
   userId: zod.number(),
@@ -246,6 +259,8 @@ export const UpdateSessionResponse = zod.object({
   paid: zod.boolean(),
   notes: zod.string().nullish(),
   source: zod.enum(["manual", "booking"]),
+  people: zod.number().default(updateSessionResponsePeopleDefault),
+  isGroup: zod.boolean().default(updateSessionResponseIsGroupDefault),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -283,6 +298,9 @@ export const GetMonthlyRevenueResponse = zod.array(
 /**
  * @summary Get recent sessions
  */
+export const getRecentSessionsResponsePeopleDefault = 1;
+export const getRecentSessionsResponseIsGroupDefault = false;
+
 export const GetRecentSessionsResponseItem = zod.object({
   id: zod.number(),
   userId: zod.number(),
@@ -294,6 +312,8 @@ export const GetRecentSessionsResponseItem = zod.object({
   paid: zod.boolean(),
   notes: zod.string().nullish(),
   source: zod.enum(["manual", "booking"]),
+  people: zod.number().default(getRecentSessionsResponsePeopleDefault),
+  isGroup: zod.boolean().default(getRecentSessionsResponseIsGroupDefault),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });

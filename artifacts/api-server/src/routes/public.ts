@@ -70,6 +70,8 @@ router.post("/public/u/:username/book/:slotId", async (req, res): Promise<void> 
   const rawName = req.body?.name;
   const rawPhone = req.body?.phone;
   const rawSlotStart = req.body?.slotStartTime;
+  const people = typeof req.body?.people === "number" && req.body.people >= 1 ? Math.floor(req.body.people) : 1;
+  const isGroup = people > 2;
   if (!rawName || typeof rawName !== "string" || rawName.trim().length === 0) {
     res.status(400).json({ error: "El nombre es obligatorio" });
     return;
@@ -141,6 +143,8 @@ router.post("/public/u/:username/book/:slotId", async (req, res): Promise<void> 
         price: sessionPrice,
         paid: false,
         source: isOwner ? "space" : "booking",
+        people,
+        isGroup,
       })
       .returning();
 

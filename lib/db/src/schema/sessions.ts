@@ -14,6 +14,8 @@ export const sessionsTable = pgTable("sessions", {
   paid: boolean("paid").notNull().default(false),
   notes: text("notes"),
   source: text("source").notNull().default("manual"),
+  people: integer("people").notNull().default(1),
+  isGroup: boolean("is_group").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
