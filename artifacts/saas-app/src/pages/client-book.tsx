@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useGetMe } from "@workspace/api-client-react";
-import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
+import { format, startOfWeek, addDays, addWeeks } from "date-fns";
 import { es } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Loader2, CheckCircle2, CalendarCheck, LogOut, Search, Building2, Share2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -63,8 +63,7 @@ export default function ClientBook() {
     setTrainerInput(tr.name);
     setUsername(tr.username);
     setDropdownOpen(false);
-    setSelectedSlot(null);
-    setSelectedSubStart(null);
+    setSelectedSlots([]);
     setClientInfo(null);
     setBooked(false);
     await fetchSlots(tr.username);
@@ -78,8 +77,7 @@ export default function ClientBook() {
 
   const [slotDuration, setSlotDuration] = useState<30 | 45 | 60>(60);
 
-  const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
-  const [selectedSubStart, setSelectedSubStart] = useState<string | null>(null);
+  const [selectedSlots, setSelectedSlots] = useState<Array<{ slot: Slot; subStart: string }>>([]);
   const [phone, setPhone] = useState("");
   const [people, setPeople] = useState(1);
   const [bookLoading, setBookLoading] = useState(false);
@@ -88,6 +86,8 @@ export default function ClientBook() {
   const [bookedSlot, setBookedSlot] = useState<Slot | null>(null);
   const [bookedSubStart, setBookedSubStart] = useState<string | null>(null);
   const [referralCopied, setReferralCopied] = useState(false);
+
+  const timeToMins = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
 
   const expandSlot = (startTime: string, endTime: string, durationMins: number): string[] => {
     const [sh, sm] = startTime.split(":").map(Number);
@@ -132,7 +132,7 @@ export default function ClientBook() {
     const u = trainerInput.trim();
     if (!u) return;
     setUsername(u);
-    setSelectedSlot(null);
+    setSelectedSlots([]);
     setBooked(false);
     await fetchSlots(u);
   };
@@ -140,7 +140,7 @@ export default function ClientBook() {
   const handleWeekChange = async (dir: number) => {
     const next = weekOffset + dir;
     setWeekOffset(next);
-    setSelectedSlot(null);
+    setSelectedSlots([]);
     if (!username) return;
     setLoading(true);
     setNotFound(false);
@@ -158,30 +158,31 @@ export default function ClientBook() {
   };
 
   const handleBook = async () => {
-    if (!selectedSlot || !me?.name) return;
+    if (selectedSlots.length === 0 || !me?.name) return;
     setBookLoading(true);
     setBookError("");
+    const sorted = [...selectedSlots].sort((a, b) => timeToMins(a.subStart) - timeToMins(b.subStart));
     try {
-      const res = await fetch(`${BASE}/api/public/u/${username}/book/${selectedSlot.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: me.name, phone: phone || "", slotStartTime: selectedSubStart ?? selectedSlot.startTime, people }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        setBookError(err.error ?? "Error al reservar. Inténtalo de nuevo.");
-        return;
+      for (const { slot, subStart } of sorted) {
+        const res = await fetch(`${BASE}/api/public/u/${username}/book/${slot.id}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: me.name, phone: phone || "", slotStartTime: subStart, people }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          setBookError(err.error ?? "Error al reservar. Inténtalo de nuevo.");
+          return;
+        }
+        setSlots(prev => prev.map(s => s.id === slot.id
+          ? { ...s, bookedSubSlots: JSON.stringify([...JSON.parse(s.bookedSubSlots || "[]"), subStart]) }
+          : s
+        ));
       }
-      const bookedTime = selectedSubStart ?? selectedSlot.startTime;
-      setSlots(prev => prev.map(s => s.id === selectedSlot!.id
-        ? { ...s, bookedSubSlots: JSON.stringify([...JSON.parse(s.bookedSubSlots || "[]"), bookedTime]) }
-        : s
-      ));
-      setBookedSlot(selectedSlot);
-      setBookedSubStart(selectedSubStart);
+      setBookedSlot(sorted[0].slot);
+      setBookedSubStart(sorted[0].subStart);
       setBooked(true);
-      setSelectedSlot(null);
-      setSelectedSubStart(null);
+      setSelectedSlots([]);
       setPeople(1);
     } catch {
       setBookError("Error al reservar. Inténtalo de nuevo.");
@@ -322,7 +323,7 @@ export default function ClientBook() {
                 <button
                   key={d}
                   type="button"
-                  onClick={() => { setSlotDuration(d); setSelectedSlot(null); setSelectedSubStart(null); }}
+                  onClick={() => { setSlotDuration(d); setSelectedSlots([]); }}
                   className={`rounded-full px-2.5 py-0.5 text-xs font-medium border transition-colors ${slotDuration === d ? "bg-primary text-primary-foreground border-primary" : "border-input hover:bg-muted text-muted-foreground"}`}
                 >
                   {d} min
@@ -354,13 +355,28 @@ export default function ClientBook() {
                       <span className="text-[10px] text-muted-foreground font-medium">{label}</span>
                       <span className="text-xs font-semibold mb-1">{num}</span>
                       {subSlots.map(({ slot, subStart }) => {
-                        const isSelected = selectedSlot?.id === slot.id && selectedSubStart === subStart;
+                        const isSelected = selectedSlots.some(s => s.slot.id === slot.id && s.subStart === subStart);
                         return (
                           <button
                             key={`${slot.id}-${subStart}`}
                             onClick={() => {
-                              if (isSelected) { setSelectedSlot(null); setSelectedSubStart(null); }
-                              else { setSelectedSlot(slot); setSelectedSubStart(subStart); }
+                              if (isSelected) {
+                                const remaining = selectedSlots.filter(s => !(s.slot.id === slot.id && s.subStart === subStart));
+                                if (remaining.length <= 1) { setSelectedSlots(remaining); return; }
+                                const sortedR = [...remaining].sort((a, b) => timeToMins(a.subStart) - timeToMins(b.subStart));
+                                const stillConsecutive = sortedR.every((s, i) => i === 0 || timeToMins(s.subStart) === timeToMins(sortedR[i - 1].subStart) + slotDuration);
+                                setSelectedSlots(stillConsecutive ? remaining : []);
+                              } else {
+                                if (selectedSlots.length === 0) { setSelectedSlots([{ slot, subStart }]); return; }
+                                const sortedSel = [...selectedSlots].sort((a, b) => timeToMins(a.subStart) - timeToMins(b.subStart));
+                                const firstMins = timeToMins(sortedSel[0].subStart);
+                                const lastMins = timeToMins(sortedSel[sortedSel.length - 1].subStart);
+                                const newMins = timeToMins(subStart);
+                                const sameDay = sortedSel[0].slot.date === slot.date;
+                                if (sameDay && (newMins === lastMins + slotDuration || newMins === firstMins - slotDuration)) {
+                                  setSelectedSlots(prev => [...prev, { slot, subStart }]);
+                                }
+                              }
                             }}
                             className={`w-full rounded-md py-1.5 text-[11px] font-medium transition-colors ${isSelected ? "bg-primary text-primary-foreground" : "bg-card border hover:bg-muted"}`}
                           >
@@ -377,11 +393,22 @@ export default function ClientBook() {
         )}
 
         {/* Booking confirmation */}
-        {selectedSlot && selectedSubStart && (
+        {selectedSlots.length > 0 && (() => {
+          const sorted = [...selectedSlots].sort((a, b) => timeToMins(a.subStart) - timeToMins(b.subStart));
+          const first = sorted[0];
+          const last = sorted[sorted.length - 1];
+          const totalMins = selectedSlots.length * slotDuration;
+          const endTime = addMinutes(last.subStart, slotDuration);
+          const durationLabel = totalMins % 60 === 0 ? `${totalMins / 60}h` : `${totalMins}min`;
+          const rangeLabel = selectedSlots.length > 1 ? `${first.subStart} – ${endTime} (${durationLabel})` : `${first.subStart} – ${endTime}`;
+          return (
           <div className="rounded-xl border bg-card p-4 space-y-3">
-            <p className="font-semibold text-sm capitalize">
-              {format(new Date(`${selectedSlot.date}T12:00:00`), "EEEE d 'de' MMMM", { locale: es })} · {selectedSubStart} – {addMinutes(selectedSubStart, slotDuration)}
-            </p>
+            <div>
+              <p className="font-semibold text-sm capitalize">
+                {format(new Date(`${first.slot.date}T12:00:00`), "EEEE d 'de' MMMM", { locale: es })}
+              </p>
+              <p className="text-sm text-primary font-medium">Reserva: {rangeLabel}</p>
+            </div>
             <div className="space-y-1.5">
               <Label className="text-xs">{t.clientView.phonePlaceholder}</Label>
               <Input
@@ -423,7 +450,8 @@ export default function ClientBook() {
               {t.clientView.book}
             </Button>
           </div>
-        )}
+          );
+        })()}
         {/* Invitar a un amigo — only when referrals are enabled */}
         {trainer?.referralsEnabled && trainer.username && me?.name && (
           <div className="rounded-xl border bg-card p-4 space-y-2">
