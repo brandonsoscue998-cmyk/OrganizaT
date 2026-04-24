@@ -23,6 +23,20 @@ export const t = {
     today: "Hoy",
     logout: "Cerrar sesión",
     calendar: "Calendario",
+    spaceBook: "Reservar espacio",
+  },
+
+  spaceBook: {
+    title: "Reservar espacio",
+    subtitle: "Encuentra un espacio disponible y reserva tu horario",
+    searchPlaceholder: "Buscar espacio por nombre…",
+    noSpaces: "No hay espacios disponibles",
+    selectSlot: "Selecciona un horario",
+    bookBtn: "Confirmar reserva",
+    successTitle: "¡Espacio reservado!",
+    successDesc: "Tu reserva ha sido confirmada.",
+    pricePerSlot: "Precio por bloque",
+    spaceLabel: "Reserva de espacio",
   },
 
   today: {

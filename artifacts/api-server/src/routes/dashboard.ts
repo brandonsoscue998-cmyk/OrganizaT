@@ -126,8 +126,8 @@ router.get("/alerts", async (req, res): Promise<void> => {
 
   const upcomingSet = new Set(clientsWithUpcoming.map(r => r.clientId));
   const noUpcomingIds = clientsWithAny
-    .filter(r => !upcomingSet.has(r.clientId))
-    .map(r => r.clientId);
+    .filter(r => r.clientId !== null && !upcomingSet.has(r.clientId))
+    .map(r => r.clientId as number);
 
   const noUpcomingSessions = noUpcomingIds.length > 0
     ? await db

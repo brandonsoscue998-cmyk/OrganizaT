@@ -7,7 +7,9 @@ import { clientsTable } from "./clients";
 export const sessionsTable = pgTable("sessions", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
-  clientId: integer("client_id").notNull().references(() => clientsTable.id, { onDelete: "cascade" }),
+  clientId: integer("client_id").references(() => clientsTable.id, { onDelete: "cascade" }),
+  ownerId: integer("owner_id").references(() => usersTable.id, { onDelete: "set null" }),
+  type: text("type"),
   date: timestamp("date", { withTimezone: true }).notNull(),
   status: text("status").notNull().default("pending"),
   price: numeric("price", { precision: 10, scale: 2 }).notNull(),

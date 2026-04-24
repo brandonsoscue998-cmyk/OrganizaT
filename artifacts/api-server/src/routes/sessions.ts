@@ -19,6 +19,8 @@ const sessionSelectFields = {
   id: sessionsTable.id,
   userId: sessionsTable.userId,
   clientId: sessionsTable.clientId,
+  ownerId: sessionsTable.ownerId,
+  type: sessionsTable.type,
   clientName: clientsTable.name,
   date: sessionsTable.date,
   status: sessionsTable.status,

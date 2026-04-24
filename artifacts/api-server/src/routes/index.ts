@@ -6,6 +6,7 @@ import sessionsRouter from "./sessions";
 import dashboardRouter from "./dashboard";
 import availabilityRouter from "./availability";
 import publicRouter from "./public";
+import spacesRouter from "./spaces";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(clientsRouter);
 router.use(sessionsRouter);
 router.use(dashboardRouter);
 router.use(availabilityRouter);
+router.use(spacesRouter);
 
 export default router;
