@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Users, Calendar, TrendingUp, AlertCircle, AlertTriangle, CalendarX, Banknote, Link2, Copy, Building2, Pencil, Check, X, Share2, Lock } from "lucide-react";
+import { Users, Calendar, TrendingUp, AlertCircle, AlertTriangle, CalendarX, Banknote, Link2, Copy, Building2, Pencil, Check, X, Share2, Lock, Bell, CheckCircle2, XCircle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
 import { Link } from "wouter";
@@ -155,6 +155,26 @@ export default function Dashboard() {
     queryFn: () => customFetch<{ username?: string | null; role?: string | null; spaceName?: string | null; pricePerSlot?: string | null; groupExtraPrice?: string | null; referralsEnabled?: boolean }>("/api/auth/me"),
   });
 
+  type BookingRequest = { id: number; userId: number; name: string; phone: string | null; date: string; slotStartTime: string | null; people: number; status: string; createdAt: string };
+  const { data: bookingRequests = [], refetch: refetchRequests } = useQuery<BookingRequest[]>({
+    queryKey: ["booking-requests"],
+    queryFn: async () => {
+      const res = await fetch(`${BASE}/api/booking-requests`, { headers: { Authorization: `Bearer ${localStorage.getItem("auth_token")}` } });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!me && me.role !== "client",
+  });
+
+  const handleAcceptRequest = async (id: number) => {
+    await fetch(`${BASE}/api/booking-requests/${id}/accept`, { method: "POST", headers: { Authorization: `Bearer ${localStorage.getItem("auth_token")}` } });
+    refetchRequests();
+  };
+  const handleRejectRequest = async (id: number) => {
+    await fetch(`${BASE}/api/booking-requests/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${localStorage.getItem("auth_token")}` } });
+    refetchRequests();
+  };
+
   const [referralToggling, setReferralToggling] = useState(false);
   const handleReferralToggle = async (enabled: boolean) => {
     setReferralToggling(true);
@@ -254,6 +274,43 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+
+        {/* Nuevas solicitudes de reserva */}
+        {me?.role !== "client" && bookingRequests.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Bell className="h-4 w-4 text-amber-500" />
+                Nuevas solicitudes de reserva
+                <span className="ml-1 inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold">{bookingRequests.length}</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {bookingRequests.map(req => (
+                  <div key={req.id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border bg-amber-50/50">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{req.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(req.date), "EEEE d 'de' MMMM · HH:mm", { locale })}
+                        {req.people > 1 && <span className="ml-2">· {req.people} personas</span>}
+                        {req.phone && <span className="ml-2">· {req.phone}</span>}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs border-green-300 text-green-700 hover:bg-green-50" onClick={() => handleAcceptRequest(req.id)}>
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Aceptar
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs border-red-300 text-red-700 hover:bg-red-50" onClick={() => handleRejectRequest(req.id)}>
+                        <XCircle className="h-3.5 w-3.5" /> Rechazar
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Enlace público de reserva */}
         {me?.username && (

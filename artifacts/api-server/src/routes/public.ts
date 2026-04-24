@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, gte, lte, inArray, SQL } from "drizzle-orm";
-import { db, usersTable, availabilityTable, clientsTable, sessionsTable } from "@workspace/db";
+import { db, usersTable, availabilityTable, clientsTable, sessionsTable, bookingRequestsTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -103,24 +103,30 @@ router.post("/public/u/:username/book/:slotId", async (req, res): Promise<void> 
     return;
   }
 
-  const session = await db.transaction(async (tx) => {
+  const sessionDate = new Date(`${slot.date}T${slotStartOverride ?? slot.startTime}:00`);
+
+  const result = await db.transaction(async (tx) => {
     let [client] = await tx
       .select()
       .from(clientsTable)
       .where(and(eq(clientsTable.userId, trainer.id), eq(clientsTable.name, name)));
 
     if (!client) {
-      [client] = await tx
-        .insert(clientsTable)
-        .values({
-          userId: trainer.id,
-          name,
-          phone: phone ?? null,
-          packPrice: "0",
-          totalSessions: 0,
-          remainingSessions: 0,
-        })
-        .returning();
+      const updatedBookedTimes = [...bookedTimes, subSlotTime];
+      await tx
+        .update(availabilityTable)
+        .set({ bookedSubSlots: JSON.stringify(updatedBookedTimes), clientName: name })
+        .where(eq(availabilityTable.id, id));
+      await tx.insert(bookingRequestsTable).values({
+        userId: trainer.id,
+        name,
+        phone: phone ?? null,
+        date: sessionDate,
+        slotId: id,
+        slotStartTime: subSlotTime,
+        people,
+      });
+      return null;
     }
 
     if (client.remainingSessions > 0) {
@@ -130,7 +136,6 @@ router.post("/public/u/:username/book/:slotId", async (req, res): Promise<void> 
         .where(eq(clientsTable.id, client.id));
     }
 
-    const sessionDate = new Date(`${slot.date}T${slotStartOverride ?? slot.startTime}:00`);
     const isOwner = trainer.role === "owner";
     const basePrice = isOwner && trainer.pricePerSlot ? Number(trainer.pricePerSlot) : 0;
     const extraPrice = isGroup && trainer.groupExtraPrice ? Number(trainer.groupExtraPrice) : 0;
@@ -161,7 +166,12 @@ router.post("/public/u/:username/book/:slotId", async (req, res): Promise<void> 
     return sess;
   });
 
-  res.status(201).json(session);
+  if (!result) {
+    res.status(202).json({ pending: true, message: "Solicitud de reserva enviada. El profesional confirmará tu cita pronto." });
+    return;
+  }
+
+  res.status(201).json(result);
 });
 
 export default router;

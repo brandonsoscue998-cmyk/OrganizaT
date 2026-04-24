@@ -6,6 +6,8 @@ import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { t } from "@/lib/i18n";
 
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const { data: user, isLoading } = useGetMe({
@@ -26,6 +28,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
     window.location.href = "/login";
   };
 
+  const [pendingCount, setPendingCount] = React.useState(0);
+  React.useEffect(() => {
+    if (!user || user.role === "client") return;
+    const token = localStorage.getItem("auth_token");
+    fetch(`${BASE}/api/booking-requests/count`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : { count: 0 })
+      .then(d => setPendingCount(d.count ?? 0))
+      .catch(() => {});
+  }, [user]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -43,6 +55,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <Link href="/dashboard" className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${location === "/dashboard" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
         <LayoutDashboard className="h-5 w-5" />
         {t.nav.dashboard}
+        {pendingCount > 0 && (
+          <span className="ml-auto inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-amber-500 text-white text-[9px] font-bold leading-none">
+            {pendingCount}
+          </span>
+        )}
       </Link>
       <Link href="/clients" className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${location.startsWith("/clients") ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
         <Users className="h-5 w-5" />

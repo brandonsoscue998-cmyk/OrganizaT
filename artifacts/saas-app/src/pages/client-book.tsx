@@ -87,6 +87,7 @@ export default function ClientBook() {
   const [booked, setBooked] = useState(false);
   const [bookedSlot, setBookedSlot] = useState<Slot | null>(null);
   const [bookedSubStart, setBookedSubStart] = useState<string | null>(null);
+  const [bookPending, setBookPending] = useState(false);
   const [referralCopied, setReferralCopied] = useState(false);
   const [requiredPassword, setRequiredPassword] = useState<string | null>(null);
   const [bookingPwdInput, setBookingPwdInput] = useState("");
@@ -171,6 +172,7 @@ export default function ClientBook() {
     setBookError("");
     const sorted = [...selectedSlots].sort((a, b) => timeToMins(a.subStart) - timeToMins(b.subStart));
     try {
+      let hasPending = false;
       for (const { slot, subStart } of sorted) {
         const res = await fetch(`${BASE}/api/public/u/${username}/book/${slot.id}`, {
           method: "POST",
@@ -182,6 +184,7 @@ export default function ClientBook() {
           setBookError(err.error ?? "Error al reservar. Inténtalo de nuevo.");
           return;
         }
+        if (res.status === 202) hasPending = true;
         setSlots(prev => prev.map(s => s.id === slot.id
           ? { ...s, bookedSubSlots: JSON.stringify([...JSON.parse(s.bookedSubSlots || "[]"), subStart]) }
           : s
@@ -189,6 +192,7 @@ export default function ClientBook() {
       }
       setBookedSlot(sorted[0].slot);
       setBookedSubStart(sorted[0].subStart);
+      setBookPending(hasPending);
       setBooked(true);
       setSelectedSlots([]);
       setPeople(1);
@@ -220,6 +224,15 @@ export default function ClientBook() {
   const bookedBanner = booked && bookedSlot ? (() => {
     const displayTime = bookedSubStart ?? bookedSlot.startTime.slice(0, 5);
     const bookedDate = `${format(new Date(bookedSlot.date), "EEEE d 'de' MMMM", { locale: es })} · ${displayTime}`;
+    if (bookPending) {
+      return (
+        <div className="mx-4 mt-3 flex items-center gap-3 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-amber-600" />
+          <span className="capitalize flex-1">Solicitud enviada para el <span className="font-medium">{bookedDate}</span>. El profesional confirmará pronto.</span>
+          <button onClick={() => setBooked(false)} className="text-amber-600 hover:text-amber-800 font-medium">✕</button>
+        </div>
+      );
+    }
     return (
       <div className="mx-4 mt-3 flex items-center gap-3 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
         <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />

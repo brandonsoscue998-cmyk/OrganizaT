@@ -46,6 +46,7 @@ export default function PublicBooking() {
   const [bookError, setBookError] = useState("");
   const [booked, setBooked] = useState(false);
   const [bookedSlot, setBookedSlot] = useState<Slot | null>(null);
+  const [bookPending, setBookPending] = useState(false);
 
   const weekStart = startOfWeek(addWeeks(new Date(), weekOffset), { weekStartsOn: 1 });
   const weekEnd = addDays(weekStart, 6);
@@ -98,6 +99,7 @@ export default function PublicBooking() {
       if (!res.ok) { const d = await res.json(); setBookError(d.error ?? "Error al reservar."); return; }
       const slot = slots.find(s => s.id === bookingSlotId)!;
       setBookedSlot(slot);
+      setBookPending(res.status === 202);
       setBooked(true);
       setBookingSlotId(null);
     } catch {
@@ -124,13 +126,16 @@ export default function PublicBooking() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-50 to-white p-6">
         <div className="w-full max-w-sm text-center">
           <div className="flex items-center justify-center mb-6">
-            <div className="h-20 w-20 rounded-full bg-green-100 flex items-center justify-center shadow-md">
-              <CheckCircle2 className="h-10 w-10 text-green-600" />
+            <div className={`h-20 w-20 rounded-full flex items-center justify-center shadow-md ${bookPending ? "bg-amber-100" : "bg-green-100"}`}>
+              <CheckCircle2 className={`h-10 w-10 ${bookPending ? "text-amber-600" : "text-green-600"}`} />
             </div>
           </div>
-          <h1 className="text-2xl font-bold mb-2">¡Reserva confirmada!</h1>
+          <h1 className="text-2xl font-bold mb-2">{bookPending ? "¡Solicitud enviada!" : "¡Reserva confirmada!"}</h1>
           <p className="text-muted-foreground text-sm mb-6">
-            Tu sesión con <span className="font-semibold text-foreground">{trainer?.name}</span> está lista.
+            {bookPending
+              ? <>Tu solicitud ha sido enviada a <span className="font-semibold text-foreground">{trainer?.name}</span>. Te confirmará la cita pronto.</>
+              : <>Tu sesión con <span className="font-semibold text-foreground">{trainer?.name}</span> está lista.</>
+            }
           </p>
           <Card className="shadow-sm">
             <CardContent className="pt-5 pb-5 space-y-3 text-sm text-left">
@@ -148,7 +153,7 @@ export default function PublicBooking() {
               </div>
             </CardContent>
           </Card>
-          <p className="text-xs text-muted-foreground mt-5">Tu profesional se pondrá en contacto contigo pronto.</p>
+          <p className="text-xs text-muted-foreground mt-5">{bookPending ? "Recibirás confirmación cuando el profesional acepte tu solicitud." : "Tu profesional se pondrá en contacto contigo pronto."}</p>
           <p className="text-[11px] text-muted-foreground/50 mt-8">Powered by <span className="font-semibold">Organiza<span className="text-primary/70">T</span></span></p>
         </div>
       </div>
