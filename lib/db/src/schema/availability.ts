@@ -8,6 +8,7 @@ export const availabilityTable = pgTable("availability", {
   startTime: text("start_time").notNull(),
   endTime: text("end_time").notNull(),
   isBooked: boolean("is_booked").notNull().default(false),
+  bookedSubSlots: text("booked_sub_slots").notNull().default("[]"),
   sessionId: integer("session_id"),
   clientName: text("client_name"),
   isRecurring: boolean("is_recurring").notNull().default(false),

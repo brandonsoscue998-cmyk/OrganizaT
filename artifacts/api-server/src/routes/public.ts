@@ -93,7 +93,9 @@ router.post("/public/u/:username/book/:slotId", async (req, res): Promise<void> 
     res.status(404).json({ error: "Slot not found" });
     return;
   }
-  if (slot.isBooked) {
+  const bookedTimes: string[] = JSON.parse(slot.bookedSubSlots || "[]");
+  const subSlotTime = typeof req.body?.slotStartTime === "string" && /^\d{2}:\d{2}$/.test(req.body.slotStartTime) ? req.body.slotStartTime : slot.startTime;
+  if (bookedTimes.includes(subSlotTime)) {
     res.status(409).json({ error: "Este horario ya está reservado" });
     return;
   }
@@ -142,9 +144,10 @@ router.post("/public/u/:username/book/:slotId", async (req, res): Promise<void> 
       })
       .returning();
 
+    const updatedBookedTimes = [...bookedTimes, subSlotTime];
     await tx
       .update(availabilityTable)
-      .set({ isBooked: true, sessionId: sess.id, clientName: name })
+      .set({ bookedSubSlots: JSON.stringify(updatedBookedTimes), sessionId: sess.id, clientName: name })
       .where(eq(availabilityTable.id, id));
 
     return sess;

@@ -10,7 +10,7 @@ import { t } from "@/lib/i18n";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-type Slot = { id: number; date: string; startTime: string; endTime: string; isBooked: boolean };
+type Slot = { id: number; date: string; startTime: string; endTime: string; isBooked: boolean; bookedSubSlots?: string };
 type Trainer = { name: string; username: string | null; role?: string | null; spaceName?: string | null; pricePerSlot?: string | null };
 type TrainerOption = { id: number; name: string; username: string | null; email: string; role: string; spaceName?: string | null; pricePerSlot?: string | null };
 
@@ -170,9 +170,16 @@ export default function ClientBook() {
         setBookError(err.error ?? "Error al reservar. Inténtalo de nuevo.");
         return;
       }
+      const bookedTime = selectedSubStart ?? selectedSlot.startTime;
+      setSlots(prev => prev.map(s => s.id === selectedSlot!.id
+        ? { ...s, bookedSubSlots: JSON.stringify([...JSON.parse(s.bookedSubSlots || "[]"), bookedTime]) }
+        : s
+      ));
       setBookedSlot(selectedSlot);
       setBookedSubStart(selectedSubStart);
       setBooked(true);
+      setSelectedSlot(null);
+      setSelectedSubStart(null);
     } catch {
       setBookError("Error al reservar. Inténtalo de nuevo.");
     } finally {
@@ -192,26 +199,23 @@ export default function ClientBook() {
       day,
       label: DAYS_ES[i],
       num: format(day, "d"),
-      slots: slots.filter(s => s.date === dayStr && !s.isBooked),
+      slots: slots.filter(s => s.date === dayStr),
     };
   });
 
   const weekLabel = `${format(weekStart, "d MMM", { locale: es })} – ${format(weekEnd, "d MMM yyyy", { locale: es })}`;
 
-  if (booked && bookedSlot) {
+  const bookedBanner = booked && bookedSlot ? (() => {
     const displayTime = bookedSubStart ?? bookedSlot.startTime.slice(0, 5);
     const bookedDate = `${format(new Date(bookedSlot.date), "EEEE d 'de' MMMM", { locale: es })} · ${displayTime}`;
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6 text-center">
-        <CheckCircle2 className="h-16 w-16 text-green-500 mb-4" />
-        <h1 className="text-2xl font-bold mb-2">{t.clientView.bookingSuccess}</h1>
-        <p className="text-muted-foreground mb-6 capitalize">{t.clientView.bookingSuccessDesc(bookedDate)}</p>
-        <Button onClick={() => { setBooked(false); setSelectedSlot(null); setSelectedSubStart(null); setSlots([]); setTrainer(null); setUsername(""); setTrainerInput(""); setWeekOffset(0); }}>
-          {t.clientView.newBooking}
-        </Button>
+      <div className="mx-4 mt-3 flex items-center gap-3 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+        <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
+        <span className="capitalize flex-1">{t.clientView.bookingSuccessDesc(bookedDate)}</span>
+        <button onClick={() => setBooked(false)} className="text-green-600 hover:text-green-800 font-medium">✕</button>
       </div>
     );
-  }
+  })() : null;
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -226,6 +230,8 @@ export default function ClientBook() {
           <span className="hidden sm:inline">{t.clientView.logout}</span>
         </Button>
       </div>
+
+      {bookedBanner}
 
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         <div>
@@ -323,7 +329,10 @@ export default function ClientBook() {
 
             {loading ? (
               <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-            ) : slots.filter(s => !s.isBooked).length === 0 ? (
+            ) : slots.every(s => {
+              const taken: string[] = JSON.parse(s.bookedSubSlots || "[]");
+              return expandSlot(s.startTime, s.endTime, slotDuration).every(st => taken.includes(st));
+            }) ? (
               <div className="text-center py-10 text-muted-foreground">
                 <CalendarCheck className="h-10 w-10 mx-auto mb-2 opacity-40" />
                 <p className="text-sm">{t.clientView.noSlots}</p>
@@ -331,9 +340,12 @@ export default function ClientBook() {
             ) : (
               <div className="grid grid-cols-7 gap-1">
                 {slotsByDay.map(({ day, label, num, slots: daySlots }) => {
-                  const subSlots = daySlots.flatMap(slot =>
-                    expandSlot(slot.startTime, slot.endTime, slotDuration).map(st => ({ slot, subStart: st }))
-                  );
+                  const subSlots = daySlots.flatMap(slot => {
+                    const taken: string[] = JSON.parse(slot.bookedSubSlots || "[]");
+                    return expandSlot(slot.startTime, slot.endTime, slotDuration)
+                      .filter(st => !taken.includes(st))
+                      .map(st => ({ slot, subStart: st }));
+                  });
                   return (
                     <div key={day.toISOString()} className="flex flex-col items-center gap-1">
                       <span className="text-[10px] text-muted-foreground font-medium">{label}</span>
