@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -7,7 +7,9 @@ import {
   useListClients,
   useCreateClient,
   useDeleteClient,
+  useListSessions,
   getListClientsQueryKey,
+  getListSessionsQueryKey,
 } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -20,7 +22,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, ChevronRight, Users, Package } from "lucide-react";
+import { Plus, Trash2, ChevronRight, Users, Package, MessageCircle } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { t } from "@/lib/i18n";
@@ -48,6 +50,31 @@ export default function Clients() {
     resolver: zodResolver(clientSchema),
     defaultValues: { totalSessions: 0, packPrice: 0, paymentMode: "per_session" },
   });
+
+  const { data: allSessions } = useListSessions({}, { query: { queryKey: getListSessionsQueryKey() } });
+
+  const lastSessionByClient = useMemo(() => {
+    const map = new Map<number, Date>();
+    for (const s of allSessions ?? []) {
+      if (!s.clientId) continue;
+      const d = new Date(s.date);
+      const existing = map.get(s.clientId);
+      if (!existing || d > existing) map.set(s.clientId, d);
+    }
+    return map;
+  }, [allSessions]);
+
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const handleReactivate = (name: string, phone?: string | null) => {
+    const msg = `Hola ${name}! 👋\nHace unos días que no entrenamos 😊\n¿Te apetece volver esta semana?`;
+    if (phone) {
+      window.open(`https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`, "_blank");
+    } else {
+      navigator.clipboard.writeText(msg);
+      toast({ title: "Mensaje copiado al portapapeles" });
+    }
+  };
 
   const isEmpty = !isLoading && clients?.length === 0;
 
@@ -198,16 +225,21 @@ export default function Clients() {
                 {clients!.map(client => {
                   const hasPack = client.totalSessions > 0;
                   const packExhausted = hasPack && client.remainingSessions === 0;
+                  const lastSession = lastSessionByClient.get(client.id);
+                  const isInactive = !!lastSession && lastSession < sevenDaysAgo;
                   return (
-                    <div key={client.id} className="flex items-center justify-between px-6 py-4 hover:bg-muted/30 transition-colors">
+                    <div key={client.id} className={`flex items-center justify-between px-6 py-4 transition-colors ${isInactive ? "bg-orange-50/40 hover:bg-orange-50/60" : "hover:bg-muted/30"}`}>
                       <Link href={`/clients/${client.id}`} className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 cursor-pointer group">
-                          <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm shrink-0">
+                          <div className={`h-9 w-9 rounded-full flex items-center justify-center font-semibold text-sm shrink-0 ${isInactive ? "bg-orange-100 text-orange-700" : "bg-primary/10 text-primary"}`}>
                             {client.name[0].toUpperCase()}
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="font-medium text-sm group-hover:text-primary transition-colors">{client.name}</div>
                             {client.phone && <div className="text-xs text-muted-foreground">{client.phone}</div>}
+                            {isInactive && (
+                              <div className="text-[11px] text-orange-600 font-medium mt-0.5">● Cliente inactivo</div>
+                            )}
                           </div>
                           {hasPack && (
                             <div className="flex items-center gap-1.5 shrink-0">
@@ -227,6 +259,17 @@ export default function Clients() {
                           <ChevronRight className="h-4 w-4 text-muted-foreground ml-1 group-hover:text-primary transition-colors shrink-0" />
                         </div>
                       </Link>
+                      {isInactive && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="ml-1 text-orange-500 hover:text-orange-700 hover:bg-orange-100 shrink-0"
+                          title="Reactivar cliente"
+                          onClick={e => { e.preventDefault(); handleReactivate(client.name, client.phone); }}
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                        </Button>
+                      )}
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="ghost" size="icon" className="ml-2 text-muted-foreground hover:text-destructive shrink-0">

@@ -22,7 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Phone, StickyNote, Calendar, Package, Pencil, Loader2 } from "lucide-react";
+import { ArrowLeft, Phone, StickyNote, Calendar, Package, Pencil, Loader2, MessageCircle } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { t, locale, formatCurrency, statusLabel } from "@/lib/i18n";
@@ -130,6 +130,24 @@ export default function ClientDetail() {
   const totalAmount = (sessions ?? []).reduce((sum, s) => sum + Number(s.price), 0);
   const paidAmount = (sessions ?? []).filter(s => s.paid).reduce((sum, s) => sum + Number(s.price), 0);
   const pendingAmount = totalAmount - paidAmount;
+
+  const lastSessionDate = (sessions ?? []).reduce<Date | null>((latest, s) => {
+    const d = new Date(s.date);
+    return !latest || d > latest ? d : latest;
+  }, null);
+  const isInactive = !!lastSessionDate && lastSessionDate < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const handleReactivate = () => {
+    const name = client?.name ?? "";
+    const phone = client?.phone;
+    const msg = `Hola ${name}! 👋\nHace unos días que no entrenamos 😊\n¿Te apetece volver esta semana?`;
+    if (phone) {
+      window.open(`https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`, "_blank");
+    } else {
+      navigator.clipboard.writeText(msg);
+      toast({ title: "Mensaje copiado al portapapeles" });
+    }
+  };
 
   const hasPack = (client?.totalSessions ?? 0) > 0;
   const packExhausted = hasPack && client!.remainingSessions === 0;
@@ -244,6 +262,22 @@ export default function ClientDetail() {
                   <p className="text-xs text-yellow-700 bg-yellow-50 border border-yellow-100 rounded-md px-3 py-2">
                     ⚠ Este cliente tiene pagos pendientes
                   </p>
+                )}
+                {isInactive && (
+                  <div className="flex items-center justify-between gap-3 bg-orange-50 border border-orange-100 rounded-md px-3 py-2">
+                    <p className="text-xs text-orange-700">
+                      ● Cliente inactivo — sin sesiones en los últimos 7 días
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-[11px] px-2.5 gap-1.5 border-orange-200 text-orange-700 hover:bg-orange-100 hover:text-orange-800 shrink-0"
+                      onClick={handleReactivate}
+                    >
+                      <MessageCircle className="h-3.5 w-3.5" />
+                      Reactivar cliente
+                    </Button>
+                  </div>
                 )}
               </div>
             )}
