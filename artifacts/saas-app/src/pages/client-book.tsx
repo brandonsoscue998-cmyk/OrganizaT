@@ -66,12 +66,34 @@ export default function ClientBook() {
     await fetchSlots(tr.username);
   };
 
+  const [slotDuration, setSlotDuration] = useState<30 | 45 | 60>(60);
+
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
+  const [selectedSubStart, setSelectedSubStart] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
   const [bookLoading, setBookLoading] = useState(false);
   const [bookError, setBookError] = useState("");
   const [booked, setBooked] = useState(false);
   const [bookedSlot, setBookedSlot] = useState<Slot | null>(null);
+  const [bookedSubStart, setBookedSubStart] = useState<string | null>(null);
+
+  const expandSlot = (startTime: string, endTime: string, durationMins: number): string[] => {
+    const [sh, sm] = startTime.split(":").map(Number);
+    const [eh, em] = endTime.split(":").map(Number);
+    const startM = sh * 60 + sm;
+    const endM = eh * 60 + em;
+    const result: string[] = [];
+    for (let m = startM; m + durationMins <= endM; m += durationMins) {
+      result.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
+    }
+    return result;
+  };
+
+  const addMinutes = (time: string, mins: number): string => {
+    const [h, m] = time.split(":").map(Number);
+    const total = h * 60 + m + mins;
+    return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+  };
 
   const weekStart = startOfWeek(addWeeks(new Date(), weekOffset), { weekStartsOn: 1 });
   const weekEnd = addDays(weekStart, 6);
@@ -131,7 +153,7 @@ export default function ClientBook() {
       const res = await fetch(`${BASE}/api/public/u/${username}/book/${selectedSlot.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: me.name, phone: phone || "" }),
+        body: JSON.stringify({ name: me.name, phone: phone || "", slotStartTime: selectedSubStart ?? selectedSlot.startTime }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -139,6 +161,7 @@ export default function ClientBook() {
         return;
       }
       setBookedSlot(selectedSlot);
+      setBookedSubStart(selectedSubStart);
       setBooked(true);
     } catch {
       setBookError("Error al reservar. Inténtalo de nuevo.");
@@ -166,13 +189,14 @@ export default function ClientBook() {
   const weekLabel = `${format(weekStart, "d MMM", { locale: es })} – ${format(weekEnd, "d MMM yyyy", { locale: es })}`;
 
   if (booked && bookedSlot) {
-    const bookedDate = `${format(new Date(bookedSlot.date), "EEEE d 'de' MMMM", { locale: es })} · ${bookedSlot.startTime.slice(0, 5)}`;
+    const displayTime = bookedSubStart ?? bookedSlot.startTime.slice(0, 5);
+    const bookedDate = `${format(new Date(bookedSlot.date), "EEEE d 'de' MMMM", { locale: es })} · ${displayTime}`;
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6 text-center">
         <CheckCircle2 className="h-16 w-16 text-green-500 mb-4" />
         <h1 className="text-2xl font-bold mb-2">{t.clientView.bookingSuccess}</h1>
         <p className="text-muted-foreground mb-6 capitalize">{t.clientView.bookingSuccessDesc(bookedDate)}</p>
-        <Button onClick={() => { setBooked(false); setSelectedSlot(null); setSlots([]); setTrainer(null); setUsername(""); setTrainerInput(""); setWeekOffset(0); }}>
+        <Button onClick={() => { setBooked(false); setSelectedSlot(null); setSelectedSubStart(null); setSlots([]); setTrainer(null); setUsername(""); setTrainerInput(""); setWeekOffset(0); }}>
           {t.clientView.newBooking}
         </Button>
       </div>
@@ -265,6 +289,21 @@ export default function ClientBook() {
               </div>
             </div>
 
+            {/* Duration picker */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">Duración:</span>
+              {([30, 45, 60] as const).map(d => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => { setSlotDuration(d); setSelectedSlot(null); setSelectedSubStart(null); }}
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium border transition-colors ${slotDuration === d ? "bg-primary text-primary-foreground border-primary" : "border-input hover:bg-muted text-muted-foreground"}`}
+                >
+                  {d} min
+                </button>
+              ))}
+            </div>
+
             {loading ? (
               <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
             ) : slots.filter(s => !s.isBooked).length === 0 ? (
@@ -274,31 +313,42 @@ export default function ClientBook() {
               </div>
             ) : (
               <div className="grid grid-cols-7 gap-1">
-                {slotsByDay.map(({ day, label, num, slots: daySlots }) => (
-                  <div key={day.toISOString()} className="flex flex-col items-center gap-1">
-                    <span className="text-[10px] text-muted-foreground font-medium">{label}</span>
-                    <span className="text-xs font-semibold mb-1">{num}</span>
-                    {daySlots.map(slot => (
-                      <button
-                        key={slot.id}
-                        onClick={() => setSelectedSlot(selectedSlot?.id === slot.id ? null : slot)}
-                        className={`w-full rounded-md py-1.5 text-[11px] font-medium transition-colors ${selectedSlot?.id === slot.id ? "bg-primary text-primary-foreground" : "bg-card border hover:bg-muted"}`}
-                      >
-                        {slot.startTime.slice(0, 5)}
-                      </button>
-                    ))}
-                  </div>
-                ))}
+                {slotsByDay.map(({ day, label, num, slots: daySlots }) => {
+                  const subSlots = daySlots.flatMap(slot =>
+                    expandSlot(slot.startTime, slot.endTime, slotDuration).map(st => ({ slot, subStart: st }))
+                  );
+                  return (
+                    <div key={day.toISOString()} className="flex flex-col items-center gap-1">
+                      <span className="text-[10px] text-muted-foreground font-medium">{label}</span>
+                      <span className="text-xs font-semibold mb-1">{num}</span>
+                      {subSlots.map(({ slot, subStart }) => {
+                        const isSelected = selectedSlot?.id === slot.id && selectedSubStart === subStart;
+                        return (
+                          <button
+                            key={`${slot.id}-${subStart}`}
+                            onClick={() => {
+                              if (isSelected) { setSelectedSlot(null); setSelectedSubStart(null); }
+                              else { setSelectedSlot(slot); setSelectedSubStart(subStart); }
+                            }}
+                            className={`w-full rounded-md py-1.5 text-[11px] font-medium transition-colors ${isSelected ? "bg-primary text-primary-foreground" : "bg-card border hover:bg-muted"}`}
+                          >
+                            {subStart}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
         )}
 
         {/* Booking confirmation */}
-        {selectedSlot && (
+        {selectedSlot && selectedSubStart && (
           <div className="rounded-xl border bg-card p-4 space-y-3">
-            <p className="font-semibold text-sm">
-              {format(new Date(`${selectedSlot.date}T12:00:00`), "EEEE d 'de' MMMM", { locale: es })} · {selectedSlot.startTime.slice(0, 5)} – {selectedSlot.endTime.slice(0, 5)}
+            <p className="font-semibold text-sm capitalize">
+              {format(new Date(`${selectedSlot.date}T12:00:00`), "EEEE d 'de' MMMM", { locale: es })} · {selectedSubStart} – {addMinutes(selectedSubStart, slotDuration)}
             </p>
             <div className="space-y-1.5">
               <Label className="text-xs">{t.clientView.phonePlaceholder}</Label>

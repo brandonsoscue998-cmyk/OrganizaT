@@ -57,12 +57,14 @@ router.post("/public/u/:username/book/:slotId", async (req, res): Promise<void> 
 
   const rawName = req.body?.name;
   const rawPhone = req.body?.phone;
+  const rawSlotStart = req.body?.slotStartTime;
   if (!rawName || typeof rawName !== "string" || rawName.trim().length === 0) {
     res.status(400).json({ error: "El nombre es obligatorio" });
     return;
   }
   const name: string = rawName.trim();
   const phone: string | undefined = typeof rawPhone === "string" && rawPhone.trim() ? rawPhone.trim() : undefined;
+  const slotStartOverride: string | undefined = typeof rawSlotStart === "string" && /^\d{2}:\d{2}$/.test(rawSlotStart) ? rawSlotStart : undefined;
 
   const trainer = await findTrainer(username);
   if (!trainer) {
@@ -105,7 +107,7 @@ router.post("/public/u/:username/book/:slotId", async (req, res): Promise<void> 
         .returning();
     }
 
-    const sessionDate = new Date(`${slot.date}T${slot.startTime}:00`);
+    const sessionDate = new Date(`${slot.date}T${slotStartOverride ?? slot.startTime}:00`);
     const [sess] = await tx
       .insert(sessionsTable)
       .values({
