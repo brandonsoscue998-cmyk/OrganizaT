@@ -48,6 +48,7 @@ function Router() {
       <Route path="/calendar" component={CalendarPage} />
       <Route path="/client" component={ClientBook} />
       <Route path="/space-book" component={SpaceBook} />
+      <Route path="/book-space" component={SpaceBook} />
       <Route path="/u/:username" component={PublicBooking} />
       <Route component={NotFound} />
     </Switch>

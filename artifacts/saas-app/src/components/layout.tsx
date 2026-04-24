@@ -61,7 +61,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {t.nav.calendar}
       </Link>
       {user.role === "trainer" && (
-        <Link href="/space-book" className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${location.startsWith("/space-book") ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
+        <Link href="/book-space" className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${location.startsWith("/book-space") || location.startsWith("/space-book") ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
           <Building2 className="h-5 w-5" />
           {t.nav.spaceBook}
         </Link>
