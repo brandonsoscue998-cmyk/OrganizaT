@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -27,7 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Calendar, ChevronRight, Loader2, Package, Info } from "lucide-react";
+import { Plus, Trash2, Calendar, ChevronRight, ChevronDown, Loader2, Package, Info } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { t, locale, formatCurrency, statusLabel } from "@/lib/i18n";
@@ -146,6 +146,27 @@ export default function Sessions() {
     return true;
   }) ?? [];
   const totalIsEmpty = !isLoading && sessions?.length === 0;
+
+  const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
+  const toggleClient = (key: string) =>
+    setExpandedClients(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, typeof filtered>();
+    for (const s of filtered) {
+      const key = String(s.clientId ?? s.clientName ?? "—");
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(s);
+    }
+    return Array.from(map.entries()).map(([key, ss]) => ({
+      key,
+      clientName: ss[0].clientName ?? t.sessions.unknownClient,
+      clientId: ss[0].clientId,
+      sessions: ss.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+      allPaid: ss.every(s => s.paid),
+      anyPaid: ss.some(s => s.paid),
+    }));
+  }, [filtered]);
 
   const newSessionDialog = (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -337,76 +358,113 @@ export default function Sessions() {
               </div>
             ) : (
               <div className="divide-y">
-                {filtered.map(session => (
-                  <div key={session.id} className="px-6 py-3 hover:bg-muted/30 transition-colors group">
-                    <div className="flex items-center justify-between">
-                      <Link href={`/sessions/${session.id}`} className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 cursor-pointer">
+                {grouped.map(group => {
+                  const isOpen = expandedClients.has(group.key);
+                  return (
+                    <div key={group.key}>
+                      {/* Client group header */}
+                      <button
+                        onClick={() => toggleClient(group.key)}
+                        className="w-full flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors text-left"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
                           <div className="min-w-0">
-                            <div className="font-medium text-sm group-hover:text-primary transition-colors flex items-center gap-2">
-                              {session.clientName ?? t.sessions.unknownClient}
-                              {session.isGroup && (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 border border-purple-200">
-                                  Grupal ({session.people} personas)
-                                </span>
+                            <div className="font-medium text-sm flex items-center gap-2">
+                              <Link
+                                href={group.clientId ? `/clients/${group.clientId}` : "#"}
+                                onClick={e => e.stopPropagation()}
+                                className="hover:text-primary transition-colors truncate"
+                              >
+                                {group.clientName}
+                              </Link>
+                              <span className="text-xs text-muted-foreground font-normal shrink-0">
+                                {group.sessions.length} {group.sessions.length === 1 ? "sesión" : "sesiones"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {group.allPaid ? (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700 border border-green-200">Todas pagadas</span>
+                              ) : group.anyPaid ? (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">Parcialmente pagada</span>
+                              ) : (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">Pendiente de pago</span>
                               )}
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              {format(new Date(session.date), "d MMM yyyy 'a las' HH:mm", { locale })}
-                            </div>
                           </div>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                         </div>
-                      </Link>
-                      <div className="flex items-center gap-3 ml-4 shrink-0">
-                      <StatusBadge status={session.status} />
-                      <span className="text-sm font-semibold">{formatCurrency(Number(session.price))}</span>
-                      {session.paid ? (
-                        <button
-                          onClick={() => togglePaid(session)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200 hover:bg-green-200 transition-colors cursor-pointer"
-                        >
-                          <svg className="h-3 w-3" viewBox="0 0 12 12" fill="currentColor">
-                            <path fillRule="evenodd" d="M10.28 2.28a.75.75 0 0 1 0 1.06l-5.5 5.5a.75.75 0 0 1-1.06 0l-2.5-2.5a.75.75 0 1 1 1.06-1.06L4.25 7.19l4.97-4.97a.75.75 0 0 1 1.06.06Z" clipRule="evenodd" />
-                          </svg>
-                          {t.sessions.paidButton}
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => togglePaid(session)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200 hover:bg-yellow-100 transition-colors cursor-pointer whitespace-nowrap"
-                        >
-                          {t.sessions.markPaidButton}
-                        </button>
+                        {isOpen
+                          ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                          : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                        }
+                      </button>
+
+                      {/* Expanded session rows */}
+                      {isOpen && (
+                        <div className="bg-muted/20 border-t divide-y">
+                          {group.sessions.map(session => (
+                            <div key={session.id} className="px-8 py-2.5 flex items-center justify-between gap-3 hover:bg-muted/30 transition-colors">
+                              <Link href={`/sessions/${session.id}`} className="flex-1 min-w-0">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className="min-w-0">
+                                    <div className="text-xs font-medium text-foreground">
+                                      {format(new Date(session.date), "d MMM yyyy 'a las' HH:mm", { locale })}
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                      <StatusBadge status={session.status} />
+                                      <span className="text-xs text-muted-foreground">{formatCurrency(Number(session.price))}</span>
+                                      {session.isGroup && (
+                                        <span className="inline-flex items-center px-1 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 border border-purple-200">
+                                          Grupal ({session.people})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </Link>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {session.paid ? (
+                                  <button
+                                    onClick={() => togglePaid(session)}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200 hover:bg-green-200 transition-colors"
+                                  >
+                                    <svg className="h-3 w-3" viewBox="0 0 12 12" fill="currentColor"><path fillRule="evenodd" d="M10.28 2.28a.75.75 0 0 1 0 1.06l-5.5 5.5a.75.75 0 0 1-1.06 0l-2.5-2.5a.75.75 0 1 1 1.06-1.06L4.25 7.19l4.97-4.97a.75.75 0 0 1 1.06.06Z" clipRule="evenodd" /></svg>
+                                    {t.sessions.paidButton}
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => togglePaid(session)}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200 hover:bg-yellow-100 transition-colors whitespace-nowrap"
+                                  >
+                                    {t.sessions.markPaidButton}
+                                  </button>
+                                )}
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>{t.sessions.deleteTitle}</AlertDialogTitle>
+                                      <AlertDialogDescription>{t.sessions.deleteDesc}</AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>{t.sessions.cancel}</AlertDialogCancel>
+                                      <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleDelete(session.id)}>
+                                        {t.sessions.deleteConfirm}
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       )}
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>{t.sessions.deleteTitle}</AlertDialogTitle>
-                            <AlertDialogDescription>{t.sessions.deleteDesc}</AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>{t.sessions.cancel}</AlertDialogCancel>
-                            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleDelete(session.id)}>
-                              {t.sessions.deleteConfirm}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                      </div>
                     </div>
-                    {session.notes && (
-                      <p className="mt-1.5 text-xs text-muted-foreground italic line-clamp-2 pl-0">
-                        {session.notes}
-                      </p>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
