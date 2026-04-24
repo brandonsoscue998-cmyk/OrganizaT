@@ -8,6 +8,7 @@ import availabilityRouter from "./availability";
 import publicRouter from "./public";
 import spacesRouter from "./spaces";
 import bookingRequestsRouter from "./bookingRequests";
+import usersAdminRouter from "./usersAdmin";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(dashboardRouter);
 router.use(availabilityRouter);
 router.use(spacesRouter);
 router.use(bookingRequestsRouter);
+router.use(usersAdminRouter);
 
 export default router;

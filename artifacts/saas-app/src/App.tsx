@@ -15,6 +15,7 @@ import TodayPage from "@/pages/today";
 import ClientBook from "@/pages/client-book";
 import SpaceBook from "@/pages/space-book";
 import PublicBooking from "@/pages/public-booking";
+import UsersAdmin from "@/pages/users-admin";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -50,6 +51,7 @@ function Router() {
       <Route path="/space-book" component={SpaceBook} />
       <Route path="/book-space" component={SpaceBook} />
       <Route path="/u/:username" component={PublicBooking} />
+      <Route path="/users" component={UsersAdmin} />
       <Route component={NotFound} />
     </Switch>
   );
