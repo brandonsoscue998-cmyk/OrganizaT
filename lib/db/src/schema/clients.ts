@@ -9,6 +9,7 @@ export const clientsTable = pgTable("clients", {
   name: text("name").notNull(),
   phone: text("phone"),
   notes: text("notes"),
+  packName: text("pack_name"),
   totalSessions: integer("total_sessions").notNull().default(0),
   remainingSessions: integer("remaining_sessions").notNull().default(0),
   packPrice: numeric("pack_price", { precision: 10, scale: 2 }).notNull().default("0"),

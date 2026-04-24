@@ -104,6 +104,7 @@ router.patch("/clients/:id", async (req, res): Promise<void> => {
   if (parsed.data.name !== undefined) updateData.name = parsed.data.name;
   if (parsed.data.phone !== undefined) updateData.phone = parsed.data.phone;
   if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes;
+  if (parsed.data.packName !== undefined) updateData.packName = parsed.data.packName ?? null;
   if (parsed.data.packPrice !== undefined) updateData.packPrice = String(parsed.data.packPrice);
   if (parsed.data.paymentMode !== undefined) updateData.paymentMode = parsed.data.paymentMode;
 

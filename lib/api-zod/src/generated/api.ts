@@ -94,6 +94,7 @@ export const CreateClientBody = zod.object({
   name: zod.string(),
   phone: zod.string().nullish(),
   notes: zod.string().nullish(),
+  packName: zod.string().nullish(),
   totalSessions: zod.number().min(createClientBodyTotalSessionsMin).optional(),
   packPrice: zod.number().min(createClientBodyPackPriceMin).optional(),
   paymentMode: zod.enum(["per_session", "monthly"]).optional(),
@@ -137,6 +138,7 @@ export const UpdateClientBody = zod.object({
   name: zod.string().optional(),
   phone: zod.string().nullish(),
   notes: zod.string().nullish(),
+  packName: zod.string().nullish(),
   totalSessions: zod.number().min(updateClientBodyTotalSessionsMin).optional(),
   remainingSessions: zod
     .number()

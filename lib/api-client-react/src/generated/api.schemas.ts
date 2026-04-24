@@ -77,6 +77,8 @@ export interface Client {
   phone?: string | null;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  packName?: string | null;
   totalSessions: number;
   remainingSessions: number;
   packPrice: number;
@@ -120,6 +122,8 @@ export interface UpdateClientBody {
   phone?: string | null;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  packName?: string | null;
   /** @minimum 0 */
   totalSessions?: number;
   /** @minimum 0 */

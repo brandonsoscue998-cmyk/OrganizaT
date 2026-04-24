@@ -41,6 +41,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 const packSchema = z.object({
+  packName: z.string().optional(),
   totalSessions: z.coerce.number().min(0, t.clients.packSessionsMin),
   packPrice: z.coerce.number().min(0, t.clients.packPriceMin),
 });
@@ -77,6 +78,7 @@ export default function ClientDetail() {
   const { register, handleSubmit, reset, formState: { errors } } = useForm<PackForm>({
     resolver: zodResolver(packSchema),
     values: {
+      packName: client?.packName ?? "",
       totalSessions: client?.totalSessions ?? 0,
       packPrice: client?.packPrice ?? 0,
     },
@@ -112,6 +114,7 @@ export default function ClientDetail() {
     await updateClient.mutateAsync({
       id,
       data: {
+        packName: data.packName || null,
         totalSessions: data.totalSessions,
         packPrice: data.packPrice,
       },
@@ -342,6 +345,15 @@ export default function ClientDetail() {
                 </DialogHeader>
                 <form onSubmit={handleSubmit(onPackSubmit)} className="space-y-4 mt-2">
                   <div className="space-y-1.5">
+                    <Label htmlFor="packName">Nombre del pack <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                    <Input
+                      id="packName"
+                      placeholder="ej. Bono 10 sesiones, Pack mensual..."
+                      {...register("packName")}
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
                     <Label htmlFor="totalSessions">{t.clients.packSessions}</Label>
                     <Input
                       id="totalSessions"
@@ -401,6 +413,9 @@ export default function ClientDetail() {
               </div>
             ) : (
               <div className="space-y-3">
+                {client!.packName && (
+                  <p className="text-sm font-semibold">{client!.packName}</p>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">{t.clients.packRemaining(client!.remainingSessions, client!.totalSessions)}</span>
                   {packExhausted ? (
