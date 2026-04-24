@@ -50,10 +50,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
     return null;
   }
 
+  const activeClass = "bg-primary/[0.07] text-foreground font-semibold";
+  const inactiveClass = "text-muted-foreground hover:bg-muted/70 hover:text-foreground";
+  const linkBase = "flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-all duration-200";
+
   const NavItems = () => (
     <>
-      <Link href="/dashboard" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${location === "/dashboard" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
-        <LayoutDashboard className="h-5 w-5" />
+      <Link href="/dashboard" className={`${linkBase} ${location === "/dashboard" ? activeClass : inactiveClass}`}>
+        <LayoutDashboard className="h-4 w-4 shrink-0" />
         {t.nav.dashboard}
         {pendingCount > 0 && (
           <span className="ml-auto inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-amber-500 text-white text-[9px] font-bold leading-none">
@@ -61,31 +65,31 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </span>
         )}
       </Link>
-      <Link href="/clients" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${location.startsWith("/clients") ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
-        <Users className="h-5 w-5" />
+      <Link href="/clients" className={`${linkBase} ${location.startsWith("/clients") ? activeClass : inactiveClass}`}>
+        <Users className="h-4 w-4 shrink-0" />
         {t.nav.clients}
       </Link>
-      <Link href="/sessions" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${location.startsWith("/sessions") ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
-        <Calendar className="h-5 w-5" />
+      <Link href="/sessions" className={`${linkBase} ${location.startsWith("/sessions") ? activeClass : inactiveClass}`}>
+        <Calendar className="h-4 w-4 shrink-0" />
         {t.nav.sessions}
       </Link>
-      <Link href="/hoy" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${location === "/hoy" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
-        <Sun className="h-5 w-5" />
+      <Link href="/hoy" className={`${linkBase} ${location === "/hoy" ? activeClass : inactiveClass}`}>
+        <Sun className="h-4 w-4 shrink-0" />
         {t.nav.today}
       </Link>
-      <Link href="/calendar" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${location.startsWith("/calendar") ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
-        <CalendarDays className="h-5 w-5" />
+      <Link href="/calendar" className={`${linkBase} ${location.startsWith("/calendar") ? activeClass : inactiveClass}`}>
+        <CalendarDays className="h-4 w-4 shrink-0" />
         {t.nav.calendar}
       </Link>
       {user.role === "trainer" && (
-        <Link href="/book-space" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${location.startsWith("/book-space") || location.startsWith("/space-book") ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
-          <Building2 className="h-5 w-5" />
+        <Link href="/book-space" className={`${linkBase} ${location.startsWith("/book-space") || location.startsWith("/space-book") ? activeClass : inactiveClass}`}>
+          <Building2 className="h-4 w-4 shrink-0" />
           {t.nav.spaceBook}
         </Link>
       )}
       {user.role !== "client" && (
-        <Link href="/users" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${location.startsWith("/users") ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted text-muted-foreground hover:text-foreground"}`}>
-          <UserCog className="h-5 w-5" />
+        <Link href="/users" className={`${linkBase} ${location.startsWith("/users") ? activeClass : inactiveClass}`}>
+          <UserCog className="h-4 w-4 shrink-0" />
           Usuarios
         </Link>
       )}
@@ -108,14 +112,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-[240px] flex flex-col gap-4">
+          <SheetContent side="left" className="w-[240px] flex flex-col gap-4 bg-muted/40">
             <div className="flex items-center gap-2 mb-4">
               <div className="h-6 w-6 rounded bg-primary flex items-center justify-center shrink-0">
                 <span className="text-primary-foreground text-[10px] font-bold leading-none">OT</span>
               </div>
               <span className="font-bold text-lg tracking-tight">Organiza<span className="text-primary">T</span></span>
             </div>
-            <nav className="flex flex-col gap-2">
+            <nav className="flex flex-col gap-0.5">
               <NavItems />
             </nav>
             <div className="mt-auto">
@@ -131,18 +135,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 border-r bg-card p-4">
+      <aside className="hidden md:flex flex-col w-64 border-r border-border/70 bg-muted/40 p-4">
         <div className="flex items-center gap-2.5 mb-8 px-2">
           <div className="h-7 w-7 rounded-md bg-primary flex items-center justify-center shrink-0">
             <span className="text-primary-foreground text-xs font-bold leading-none">OT</span>
           </div>
           <span className="font-bold text-xl tracking-tight">Organiza<span className="text-primary">T</span></span>
         </div>
-        <nav className="flex flex-col gap-2 flex-1">
+        <nav className="flex flex-col gap-0.5 flex-1">
           <NavItems />
         </nav>
-        <div className="mt-auto pt-4 border-t">
-          <div className="px-2 mb-4">
+        <div className="mt-auto pt-4 border-t border-border/60">
+          <div className="px-3 mb-3">
             <div className="text-sm font-medium truncate">{user.name}</div>
             <div className="text-xs text-muted-foreground truncate">{user.email}</div>
           </div>
