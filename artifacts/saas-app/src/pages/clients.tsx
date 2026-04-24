@@ -40,9 +40,9 @@ const ROLE_BADGE: Record<string, string> = {
 function getClientStatus(last: Date | null): { label: string; cls: string } | null {
   if (!last) return null;
   const days = (Date.now() - last.getTime()) / 86400000;
-  if (days < 7)  return { label: "Activo",   cls: "bg-green-100 text-green-700 border-green-200" };
-  if (days < 30) return { label: "Medio",    cls: "bg-yellow-100 text-yellow-700 border-yellow-200" };
-  return           { label: "Inactivo", cls: "bg-red-100 text-red-700 border-red-200" };
+  if (days < 7)  return { label: "Activo",   cls: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+  if (days < 30) return { label: "Medio",    cls: "bg-amber-50 text-amber-700 border-amber-200" };
+  return           { label: "Inactivo", cls: "bg-red-50 text-red-600 border-red-200" };
 }
 
 const clientSchema = z.object({
@@ -508,7 +508,7 @@ export default function Clients() {
                 </Button>
               </div>
             ) : (
-              <div className="divide-y">
+              <div className="p-3 flex flex-col gap-1.5">
                 {displayedClients.map(client => {
                   const hasPack = client.totalSessions > 0;
                   const packExhausted = hasPack && client.remainingSessions === 0;
@@ -517,14 +517,14 @@ export default function Clients() {
                   const ins = clientInsights.get(client.id);
                   const status = getClientStatus(ins?.last ?? null);
                   return (
-                    <div key={client.id} className={`flex items-center justify-between px-6 py-4 transition-colors ${isInactive ? "bg-orange-50/40 hover:bg-orange-50/60" : "hover:bg-muted/30"}`}>
+                    <div key={client.id} className={`flex items-center justify-between px-4 py-3.5 rounded-lg transition-all duration-200 ${isInactive ? "bg-orange-50/30 border border-orange-100 hover:bg-orange-50/60" : "border border-transparent hover:border-border/50 hover:bg-muted/50"}`}>
                       <Link href={`/clients/${client.id}`} className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 cursor-pointer group">
                           <div className={`h-9 w-9 rounded-full flex items-center justify-center font-semibold text-sm shrink-0 ${isInactive ? "bg-orange-100 text-orange-700" : "bg-primary/10 text-primary"}`}>
                             {client.name[0].toUpperCase()}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="font-medium text-sm group-hover:text-primary transition-colors">{client.name}</div>
+                            <div className="font-semibold text-sm group-hover:text-primary transition-colors">{client.name}</div>
                             {client.phone && <div className="text-xs text-muted-foreground">{client.phone}</div>}
                             {ins && ins.count > 0 && (
                               <div className="text-[11px] text-muted-foreground mt-0.5">
@@ -535,19 +535,19 @@ export default function Clients() {
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
                             {status && (
-                              <span className={`text-xs px-1.5 py-0.5 rounded-full border font-medium ${status.cls}`}>
+                              <span className={`text-[11px] px-1.5 py-0.5 rounded-full border font-medium ${status.cls}`}>
                                 {status.label}
                               </span>
                             )}
                             {hasPack && (
                               <>
                                 {packExhausted ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-200">
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] font-medium bg-red-50 text-red-600 border border-red-200">
                                     <Package className="h-3 w-3" />
                                     {t.clients.packExhausted}
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-200">
                                     <Package className="h-3 w-3" />
                                     {t.clients.sessionsLabel(client.remainingSessions, client.totalSessions)}
                                   </span>

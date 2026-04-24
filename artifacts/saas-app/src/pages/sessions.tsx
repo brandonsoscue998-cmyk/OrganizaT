@@ -45,12 +45,12 @@ type SessionForm = z.infer<typeof sessionSchema>;
 
 function StatusBadge({ status }: { status: string }) {
   const variants: Record<string, string> = {
-    pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    completed: "bg-green-100 text-green-800 border-green-200",
-    cancelled: "bg-gray-100 text-gray-700 border-gray-200",
+    pending: "bg-amber-50 text-amber-700 border-amber-200",
+    completed: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    cancelled: "bg-slate-100 text-slate-500 border-slate-200",
   };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${variants[status] ?? variants.pending}`}>
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-medium border ${variants[status] ?? variants.pending}`}>
       {statusLabel(status)}
     </span>
   );
@@ -393,11 +393,11 @@ export default function Sessions() {
                       <div className="flex items-center">
                       <div
                         onClick={() => toggleClient(group.key)}
-                        className="flex-1 flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors text-left cursor-pointer"
+                        className="flex-1 flex items-center justify-between px-6 py-4 hover:bg-muted/50 transition-all duration-200 text-left cursor-pointer"
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="min-w-0">
-                            <div className="font-medium text-sm flex items-center gap-2">
+                            <div className="font-semibold text-sm flex items-center gap-2">
                               <Link
                                 href={group.clientId ? `/clients/${group.clientId}` : "#"}
                                 onClick={e => e.stopPropagation()}
@@ -469,7 +469,7 @@ export default function Sessions() {
                       {isOpen && (
                         <div className="bg-muted/20 border-t divide-y">
                           {group.sessions.map(session => (
-                            <div key={session.id} className="px-8 py-2.5 flex items-center justify-between gap-3 hover:bg-muted/30 transition-colors">
+                            <div key={session.id} className="px-8 py-3 flex items-center justify-between gap-3 hover:bg-muted/50 transition-all duration-200">
                               <Link href={`/sessions/${session.id}`} className="flex-1 min-w-0">
                                 <div className="flex items-center gap-3 min-w-0">
                                   <div className="min-w-0">
