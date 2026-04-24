@@ -82,10 +82,11 @@ export default function Sessions() {
 
   const togglePaid = async (session: { id: number; paid: boolean }) => {
     const newPaid = !session.paid;
+    const newStatus = newPaid ? "completed" : "pending";
     queryClient.setQueryData(getListSessionsQueryKey(), (old: typeof sessions) =>
-      old?.map(s => s.id === session.id ? { ...s, paid: newPaid } : s)
+      old?.map(s => s.id === session.id ? { ...s, paid: newPaid, status: newStatus } : s)
     );
-    await updateSession.mutateAsync({ id: session.id, data: { paid: newPaid } });
+    await updateSession.mutateAsync({ id: session.id, data: { paid: newPaid, status: newStatus } });
     queryClient.invalidateQueries({ queryKey: getListSessionsQueryKey() });
     queryClient.invalidateQueries({ queryKey: getGetDashboardStatsQueryKey() });
     toast({ title: newPaid ? t.sessions.markedPaid : t.sessions.markedUnpaid });
@@ -137,7 +138,13 @@ export default function Sessions() {
     queryClient.invalidateQueries({ queryKey: getGetMonthlyRevenueQueryKey() });
   };
 
-  const filtered = sessions?.filter(s => filterStatus === "all" ? true : s.status === filterStatus) ?? [];
+  const filtered = sessions?.filter(s => {
+    if (filterStatus === "all") return true;
+    if (filterStatus === "pending") return !s.paid && s.status !== "cancelled";
+    if (filterStatus === "completed") return s.paid;
+    if (filterStatus === "cancelled") return s.status === "cancelled";
+    return true;
+  }) ?? [];
   const totalIsEmpty = !isLoading && sessions?.length === 0;
 
   const newSessionDialog = (
