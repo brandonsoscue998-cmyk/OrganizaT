@@ -31,6 +31,8 @@ export default function ClientBook() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
+  const [clientInfo, setClientInfo] = useState<{ remainingSessions: number; totalSessions: number; packPrice: string } | null>(null);
+
   useEffect(() => {
     fetch(`${BASE}/api/public/trainers`)
       .then(r => r.json())
@@ -62,8 +64,16 @@ export default function ClientBook() {
     setUsername(tr.username);
     setDropdownOpen(false);
     setSelectedSlot(null);
+    setSelectedSubStart(null);
+    setClientInfo(null);
     setBooked(false);
     await fetchSlots(tr.username);
+    if (me?.name) {
+      fetch(`${BASE}/api/public/u/${tr.username}/my-info?name=${encodeURIComponent(me.name)}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data) setClientInfo(data); })
+        .catch(() => {});
+    }
   };
 
   const [slotDuration, setSlotDuration] = useState<30 | 45 | 60>(60);
@@ -359,6 +369,16 @@ export default function ClientBook() {
                 className="h-9"
               />
             </div>
+            {clientInfo && clientInfo.remainingSessions > 0 ? (
+              <div className="rounded-lg bg-blue-50 border border-blue-100 px-3 py-2 text-sm text-blue-800 space-y-0.5">
+                <p>Te quedan <span className="font-semibold">{clientInfo.remainingSessions}</span> sesión{clientInfo.remainingSessions !== 1 ? "es" : ""} del pack</p>
+                <p className="text-xs text-blue-500">Se descontará 1 sesión · {clientInfo.totalSessions > 0 ? `${(Number(clientInfo.packPrice) / clientInfo.totalSessions).toFixed(2).replace(".", ",")}€/sesión` : ""}</p>
+              </div>
+            ) : clientInfo ? (
+              <div className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
+                Sin pack activo — el precio lo confirma el entrenador
+              </div>
+            ) : null}
             {bookError && <p className="text-xs text-destructive">{bookError}</p>}
             <Button className="w-full" onClick={handleBook} disabled={bookLoading}>
               {bookLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}

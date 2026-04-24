@@ -47,6 +47,18 @@ router.get("/public/u/:username", async (req, res): Promise<void> => {
   res.json({ trainer: { name: trainer.name, username: trainer.username }, slots });
 });
 
+router.get("/public/u/:username/my-info", async (req, res): Promise<void> => {
+  const trainer = await findTrainer(req.params.username);
+  if (!trainer) { res.status(404).json({ error: "Trainer not found" }); return; }
+  const name = typeof req.query.name === "string" ? req.query.name.trim() : "";
+  if (!name) { res.status(400).json({ error: "name required" }); return; }
+  const [client] = await db
+    .select({ remainingSessions: clientsTable.remainingSessions, totalSessions: clientsTable.totalSessions, packPrice: clientsTable.packPrice })
+    .from(clientsTable)
+    .where(and(eq(clientsTable.userId, trainer.id), eq(clientsTable.name, name)));
+  res.json(client ?? null);
+});
+
 router.post("/public/u/:username/book/:slotId", async (req, res): Promise<void> => {
   const { username, slotId } = req.params;
   const id = parseInt(slotId, 10);
@@ -105,6 +117,13 @@ router.post("/public/u/:username/book/:slotId", async (req, res): Promise<void> 
           paid: false,
         })
         .returning();
+    }
+
+    if (client.remainingSessions > 0) {
+      await tx
+        .update(clientsTable)
+        .set({ remainingSessions: client.remainingSessions - 1 })
+        .where(eq(clientsTable.id, client.id));
     }
 
     const sessionDate = new Date(`${slot.date}T${slotStartOverride ?? slot.startTime}:00`);
