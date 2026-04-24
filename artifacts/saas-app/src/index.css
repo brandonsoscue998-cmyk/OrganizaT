@@ -74,15 +74,15 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
-  --background: 210 40% 98%;
+  --background: 210 20% 98.5%;
   --foreground: 222 47% 11%;
-  --border: 214 32% 91%;
+  --border: 220 13% 92%;
   --card: 0 0% 100%;
   --card-foreground: 222 47% 11%;
-  --card-border: 214 32% 91%;
+  --card-border: 220 13% 92%;
   --sidebar: 0 0% 100%;
   --sidebar-foreground: 222 47% 11%;
-  --sidebar-border: 214 32% 91%;
+  --sidebar-border: 220 13% 92%;
   --sidebar-primary: 221.2 83.2% 53.3%;
   --sidebar-primary-foreground: 210 40% 98%;
   --sidebar-accent: 210 40% 96.1%;
@@ -113,7 +113,7 @@
   --app-font-sans: 'Inter', system-ui, sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: Menlo, monospace;
-  --radius: 0.3rem;
+  --radius: 0.5rem;
 }
 
 .dark {
