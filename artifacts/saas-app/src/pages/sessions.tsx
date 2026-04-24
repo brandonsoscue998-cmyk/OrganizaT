@@ -165,6 +165,9 @@ export default function Sessions() {
       sessions: ss.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
       allPaid: ss.every(s => s.paid),
       anyPaid: ss.some(s => s.paid),
+      totalAmount: ss.reduce((sum, s) => sum + Number(s.price), 0),
+      paidAmount: ss.filter(s => s.paid).reduce((sum, s) => sum + Number(s.price), 0),
+      pendingAmount: ss.filter(s => !s.paid).reduce((sum, s) => sum + Number(s.price), 0),
     }));
   }, [filtered]);
 
@@ -381,13 +384,21 @@ export default function Sessions() {
                                 {group.sessions.length} {group.sessions.length === 1 ? "sesión" : "sesiones"}
                               </span>
                             </div>
-                            <div className="flex items-center gap-2 mt-0.5">
+                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                               {group.allPaid ? (
                                 <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700 border border-green-200">Todas pagadas</span>
                               ) : group.anyPaid ? (
                                 <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">Parcialmente pagada</span>
                               ) : (
                                 <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">Pendiente de pago</span>
+                              )}
+                              <span className="text-[10px] text-muted-foreground">·</span>
+                              <span className="text-[10px] text-muted-foreground">Total <span className="font-semibold text-foreground">{formatCurrency(group.totalAmount)}</span></span>
+                              {group.paidAmount > 0 && (
+                                <span className="text-[10px] text-green-700">Pagado <span className="font-semibold">{formatCurrency(group.paidAmount)}</span></span>
+                              )}
+                              {group.pendingAmount > 0 && (
+                                <span className="text-[10px] text-yellow-700">Pendiente <span className="font-semibold">{formatCurrency(group.pendingAmount)}</span></span>
                               )}
                             </div>
                           </div>
