@@ -22,7 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Phone, StickyNote, Calendar, Package, Pencil, Loader2, MessageCircle } from "lucide-react";
+import { ArrowLeft, Phone, StickyNote, Calendar, Package, Pencil, Loader2, MessageCircle, Plus } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { t, locale, formatCurrency, statusLabel } from "@/lib/i18n";
@@ -463,9 +463,18 @@ export default function ClientDetail() {
                 {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
               </div>
             ) : !sessions?.length ? (
-              <div className="py-10 text-center">
-                <Calendar className="h-8 w-8 text-muted-foreground mx-auto mb-3 opacity-40" />
-                <p className="text-muted-foreground text-sm">{t.clients.noSessionsForClient}</p>
+              <div className="py-12 text-center">
+                <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="h-7 w-7 text-muted-foreground opacity-50" />
+                </div>
+                <p className="font-semibold text-sm mb-1">{t.clients.noSessionsForClient}</p>
+                <p className="text-muted-foreground text-xs mb-5 max-w-xs mx-auto">{t.clients.noSessionsForClientDesc}</p>
+                <Button asChild size="sm" className="gap-2">
+                  <Link href="/sessions">
+                    <Plus className="h-4 w-4" />
+                    {t.clients.addFirstSession}
+                  </Link>
+                </Button>
               </div>
             ) : (
               <div className="divide-y">

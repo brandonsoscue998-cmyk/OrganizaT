@@ -11,7 +11,8 @@ import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, CheckCircle2, Sun } from "lucide-react";
+import { Trash2, CheckCircle2, Sun, Calendar } from "lucide-react";
+import { Link } from "wouter";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { t, statusLabel } from "@/lib/i18n";
@@ -107,9 +108,17 @@ export default function Today() {
           </div>
         ) : todaySessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Sun className="h-12 w-12 text-yellow-400 mb-4" />
-            <p className="text-lg font-semibold">{t.today.noSessions}</p>
-            <p className="text-muted-foreground text-sm mt-1 max-w-xs">{t.today.noSessionsDesc}</p>
+            <div className="h-16 w-16 rounded-full bg-yellow-50 flex items-center justify-center mb-4">
+              <Sun className="h-8 w-8 text-yellow-500" />
+            </div>
+            <p className="text-lg font-semibold mb-1">{t.today.noSessions}</p>
+            <p className="text-muted-foreground text-sm mb-5 max-w-xs">{t.today.noSessionsDesc}</p>
+            <Button asChild size="sm" className="gap-2">
+              <Link href="/sessions">
+                <Calendar className="h-4 w-4" />
+                {t.today.goToSessions}
+              </Link>
+            </Button>
           </div>
         ) : (
           <div className="space-y-2">

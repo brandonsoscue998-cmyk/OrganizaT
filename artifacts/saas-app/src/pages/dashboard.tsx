@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Users, Calendar, TrendingUp, AlertCircle, AlertTriangle, CalendarX, Banknote, Link2, Copy, Building2, Pencil, Check, X, Share2, Lock, Bell, CheckCircle2, XCircle } from "lucide-react";
+import { Users, Calendar, TrendingUp, AlertCircle, AlertTriangle, CalendarX, Banknote, Link2, Copy, Building2, Pencil, Check, X, Share2, Lock, Bell, CheckCircle2, XCircle, Plus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
 import { Link } from "wouter";
@@ -527,9 +527,17 @@ export default function Dashboard() {
                 {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
               </div>
             ) : !recentSessions?.length ? (
-              <div className="py-8 text-center text-muted-foreground text-sm">
-                {t.dashboard.noSessions}{" "}
-                <Link href="/sessions" className="text-primary hover:underline">{t.dashboard.createFirstSession}</Link>
+              <div className="py-10 text-center">
+                <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="h-7 w-7 text-muted-foreground opacity-50" />
+                </div>
+                <p className="font-semibold text-sm mb-3">{t.dashboard.noSessions}</p>
+                <Button asChild size="sm" variant="outline" className="gap-2">
+                  <Link href="/sessions">
+                    <Plus className="h-4 w-4" />
+                    {t.dashboard.createFirstSession}
+                  </Link>
+                </Button>
               </div>
             ) : (
               <div className="divide-y">

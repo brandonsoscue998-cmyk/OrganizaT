@@ -4,6 +4,7 @@ import { Layout } from "@/components/layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Search, UserCog } from "lucide-react";
 import { format } from "date-fns";
 import { locale } from "@/lib/i18n";
@@ -119,8 +120,22 @@ export default function UsersAdmin() {
               </div>
             ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
-                <UserCog className="h-10 w-10 text-muted-foreground/40 mb-3" />
-                <p className="text-sm text-muted-foreground">No se encontraron usuarios</p>
+                <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center mb-4">
+                  <UserCog className="h-7 w-7 text-muted-foreground opacity-50" />
+                </div>
+                <p className="font-semibold text-sm mb-1">No se encontraron usuarios</p>
+                <p className="text-muted-foreground text-xs mb-5 max-w-xs mx-auto">
+                  {search ? "Prueba con otro nombre o correo." : "Aún no hay usuarios en esta categoría."}
+                </p>
+                {(search || tab !== "all") && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setSearch(""); setTab("all"); }}
+                  >
+                    {search ? "Limpiar búsqueda" : "Ver todos"}
+                  </Button>
+                )}
               </div>
             ) : (
               <ul className="divide-y">

@@ -43,7 +43,8 @@ export const t = {
     title: "Hoy",
     subtitle: "Sesiones del día de hoy",
     noSessions: "No tienes sesiones hoy",
-    noSessionsDesc: "Disfruta tu día libre o añade sesiones desde la sección Sesiones.",
+    noSessionsDesc: "Disfruta tu día libre o programa una nueva sesión cuando quieras.",
+    goToSessions: "Ir a Sesiones",
     markPaid: "Cobrar",
     paid: "Cobrado",
     complete: "Completar",
@@ -161,6 +162,8 @@ export const t = {
     clientSessions: "Sesiones",
     viewAllSessions: "Ver todas",
     noSessionsForClient: "Este cliente aún no tiene sesiones",
+    noSessionsForClientDesc: "Registra una sesión desde la sección Sesiones para empezar.",
+    addFirstSession: "Registrar primera sesión",
     packSection: "Pack de sesiones",
     packOptional: "(opcional)",
     packSessions: "Nº de sesiones del pack",
@@ -219,6 +222,7 @@ export const t = {
     noSessions: "No tienes sesiones registradas",
     noSessionsEmpty: "Registra tu primera sesión para llevar el control de tu consulta.",
     createFirst: "Crear primera sesión",
+    showAll: "Ver todas",
     noSessionsDesc: (status: string) =>
       status !== "all"
         ? `No hay sesiones con estado "${statusLabel(status).toLowerCase()}"`

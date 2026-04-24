@@ -381,9 +381,14 @@ export default function Sessions() {
                   <Calendar className="h-7 w-7 text-muted-foreground opacity-50" />
                 </div>
                 <p className="font-semibold text-sm mb-1">{t.sessions.noSessions}</p>
-                <p className="text-muted-foreground text-xs max-w-xs mx-auto">
+                <p className="text-muted-foreground text-xs mb-5 max-w-xs mx-auto">
                   {t.sessions.noSessionsDesc(filterStatus)}
                 </p>
+                {filterStatus !== "all" && (
+                  <Button size="sm" variant="outline" onClick={() => setFilterStatus("all")}>
+                    {t.sessions.showAll}
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="divide-y">
