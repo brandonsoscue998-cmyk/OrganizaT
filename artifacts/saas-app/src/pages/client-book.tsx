@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useGetMe } from "@workspace/api-client-react";
 import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
 import { es } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Loader2, CheckCircle2, CalendarCheck, LogOut, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, CheckCircle2, CalendarCheck, LogOut, Search, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,8 +11,8 @@ import { t } from "@/lib/i18n";
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 type Slot = { id: number; date: string; startTime: string; endTime: string; isBooked: boolean };
-type Trainer = { name: string; username: string | null };
-type TrainerOption = { id: number; name: string; username: string | null; email: string };
+type Trainer = { name: string; username: string | null; role?: string | null; spaceName?: string | null; pricePerSlot?: string | null };
+type TrainerOption = { id: number; name: string; username: string | null; email: string; role: string; spaceName?: string | null; pricePerSlot?: string | null };
 
 const DAYS_ES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
@@ -267,10 +267,17 @@ export default function ClientBook() {
                         key={tr.id}
                         type="button"
                         onClick={() => handleSelectTrainer(tr)}
-                        className="w-full text-left px-4 py-2.5 hover:bg-muted transition-colors flex flex-col gap-0.5 border-b last:border-b-0"
+                        className="w-full text-left px-4 py-2.5 hover:bg-muted transition-colors flex items-center gap-3 border-b last:border-b-0"
                       >
-                        <span className="text-sm font-medium">{tr.name}</span>
-                        {tr.username && <span className="text-[11px] text-muted-foreground">@{tr.username}</span>}
+                        {tr.role === "owner" && <Building2 className="h-4 w-4 text-primary/60 shrink-0" />}
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium">{tr.role === "owner" && tr.spaceName ? tr.spaceName : tr.name}</div>
+                          <div className="text-[11px] text-muted-foreground">
+                            {tr.role === "owner"
+                              ? `${tr.name}${tr.pricePerSlot && Number(tr.pricePerSlot) > 0 ? ` · ${Number(tr.pricePerSlot).toFixed(2).replace(".", ",")}€/hora` : ""}`
+                              : tr.username ? `@${tr.username}` : ""}
+                          </div>
+                        </div>
                       </button>
                     ))}
                   </>

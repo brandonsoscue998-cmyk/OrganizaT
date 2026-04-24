@@ -39,7 +39,8 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     username = `${baseSlug}-${counter++}`;
   }
 
-  const [user] = await db.insert(usersTable).values({ email, name, passwordHash, username, role: role ?? "trainer" }).returning();
+  const { spaceName, pricePerSlot } = parsed.data as { spaceName?: string; pricePerSlot?: string };
+  const [user] = await db.insert(usersTable).values({ email, name, passwordHash, username, role: role ?? "trainer", spaceName: spaceName ?? null, pricePerSlot: pricePerSlot ?? "0" }).returning();
 
   const token = signToken({ userId: user.id, email: user.email });
   res.status(201).json({
@@ -50,6 +51,8 @@ router.post("/auth/register", async (req, res): Promise<void> => {
       name: user.name,
       username: user.username,
       role: user.role,
+      spaceName: user.spaceName,
+      pricePerSlot: user.pricePerSlot,
       createdAt: user.createdAt,
     },
   });
@@ -83,6 +86,8 @@ router.post("/auth/login", async (req, res): Promise<void> => {
       email: user.email,
       name: user.name,
       role: user.role,
+      spaceName: user.spaceName,
+      pricePerSlot: user.pricePerSlot,
       createdAt: user.createdAt,
     },
   });
@@ -100,8 +105,20 @@ router.get("/auth/me", requireAuth, async (req, res): Promise<void> => {
     name: user.name,
     username: user.username,
     role: user.role,
+    spaceName: user.spaceName,
+    pricePerSlot: user.pricePerSlot,
     createdAt: user.createdAt,
   });
+});
+
+router.patch("/auth/me/space", requireAuth, async (req, res): Promise<void> => {
+  const { spaceName, pricePerSlot } = req.body ?? {};
+  const updateData: { spaceName?: string | null; pricePerSlot?: string } = {};
+  if (typeof spaceName === "string") updateData.spaceName = spaceName.trim() || null;
+  if (typeof pricePerSlot === "string" || typeof pricePerSlot === "number") updateData.pricePerSlot = String(pricePerSlot);
+  if (Object.keys(updateData).length === 0) { res.status(400).json({ error: "Nothing to update" }); return; }
+  const [user] = await db.update(usersTable).set(updateData).where(eq(usersTable.id, req.user!.userId)).returning();
+  res.json({ spaceName: user.spaceName, pricePerSlot: user.pricePerSlot });
 });
 
 export default router;

@@ -19,6 +19,7 @@ export type RegisterBodyRole =
 export const RegisterBodyRole = {
   trainer: "trainer",
   client: "client",
+  owner: "owner",
 } as const;
 
 export interface RegisterBody {
@@ -27,6 +28,8 @@ export interface RegisterBody {
   password: string;
   name: string;
   role?: RegisterBodyRole;
+  spaceName?: string;
+  pricePerSlot?: string;
 }
 
 export interface LoginBody {
@@ -39,6 +42,7 @@ export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 export const UserRole = {
   trainer: "trainer",
   client: "client",
+  owner: "owner",
 } as const;
 
 export interface User {
@@ -47,6 +51,8 @@ export interface User {
   name: string;
   username?: string;
   role: UserRole;
+  spaceName?: string;
+  pricePerSlot?: string;
   createdAt: string;
 }
 

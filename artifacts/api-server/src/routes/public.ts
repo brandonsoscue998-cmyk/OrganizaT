@@ -1,14 +1,14 @@
 import { Router, type IRouter } from "express";
-import { eq, and, gte, lte, SQL } from "drizzle-orm";
+import { eq, and, gte, lte, inArray, SQL } from "drizzle-orm";
 import { db, usersTable, availabilityTable, clientsTable, sessionsTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
 router.get("/public/trainers", async (_req, res): Promise<void> => {
   const trainers = await db
-    .select({ id: usersTable.id, name: usersTable.name, username: usersTable.username, email: usersTable.email })
+    .select({ id: usersTable.id, name: usersTable.name, username: usersTable.username, email: usersTable.email, role: usersTable.role, spaceName: usersTable.spaceName, pricePerSlot: usersTable.pricePerSlot })
     .from(usersTable)
-    .where(eq(usersTable.role, "trainer"))
+    .where(inArray(usersTable.role, ["trainer", "owner"]))
     .orderBy(usersTable.name);
   res.json(trainers);
 });
@@ -16,7 +16,7 @@ router.get("/public/trainers", async (_req, res): Promise<void> => {
 
 async function findTrainer(username: string) {
   const [trainer] = await db
-    .select({ id: usersTable.id, name: usersTable.name, username: usersTable.username })
+    .select({ id: usersTable.id, name: usersTable.name, username: usersTable.username, role: usersTable.role, spaceName: usersTable.spaceName, pricePerSlot: usersTable.pricePerSlot })
     .from(usersTable)
     .where(eq(usersTable.username, username));
   return trainer ?? null;
@@ -44,7 +44,7 @@ router.get("/public/u/:username", async (req, res): Promise<void> => {
     .where(and(...conditions))
     .orderBy(availabilityTable.date, availabilityTable.startTime);
 
-  res.json({ trainer: { name: trainer.name, username: trainer.username }, slots });
+  res.json({ trainer: { name: trainer.name, username: trainer.username, role: trainer.role, spaceName: trainer.spaceName, pricePerSlot: trainer.pricePerSlot }, slots });
 });
 
 router.get("/public/u/:username/my-info", async (req, res): Promise<void> => {
@@ -127,6 +127,8 @@ router.post("/public/u/:username/book/:slotId", async (req, res): Promise<void> 
     }
 
     const sessionDate = new Date(`${slot.date}T${slotStartOverride ?? slot.startTime}:00`);
+    const isOwner = trainer.role === "owner";
+    const sessionPrice = isOwner && trainer.pricePerSlot ? trainer.pricePerSlot : "0";
     const [sess] = await tx
       .insert(sessionsTable)
       .values({
@@ -134,9 +136,9 @@ router.post("/public/u/:username/book/:slotId", async (req, res): Promise<void> 
         clientId: client.id,
         date: sessionDate,
         status: "pending",
-        price: "0",
+        price: sessionPrice,
         paid: false,
-        source: "booking",
+        source: isOwner ? "space" : "booking",
       })
       .returning();
 

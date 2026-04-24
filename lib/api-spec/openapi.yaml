@@ -566,7 +566,11 @@ components:
           type: string
         role:
           type: string
-          enum: [trainer, client]
+          enum: [trainer, client, owner]
+        spaceName:
+          type: string
+        pricePerSlot:
+          type: string
       required:
         - email
         - password
@@ -597,7 +601,11 @@ components:
           type: string
         role:
           type: string
-          enum: [trainer, client]
+          enum: [trainer, client, owner]
+        spaceName:
+          type: string
+        pricePerSlot:
+          type: string
         createdAt:
           type: string
           format: date-time

@@ -16,7 +16,7 @@ const registerSchema = z.object({
   name: z.string().min(2, t.auth.nameMin),
   email: z.string().email(t.auth.emailInvalid),
   password: z.string().min(6, t.auth.passwordMin),
-  role: z.enum(["trainer", "client"]).default("trainer"),
+  role: z.enum(["trainer", "client", "owner"]).default("trainer"),
 });
 
 type RegisterForm = z.infer<typeof registerSchema>;
@@ -94,15 +94,16 @@ export default function Register() {
               </div>
               <div className="space-y-1.5">
                 <Label>{t.auth.roleLabel}</Label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   {[
                     { value: "trainer", label: t.auth.roleTrainer },
                     { value: "client", label: t.auth.roleClient },
+                    { value: "owner", label: t.auth.roleOwner },
                   ].map(opt => (
                     <button
                       key={opt.value}
                       type="button"
-                      onClick={() => setValue("role", opt.value as "trainer" | "client")}
+                      onClick={() => setValue("role", opt.value as "trainer" | "client" | "owner")}
                       className={`rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors text-center ${selectedRole === opt.value ? "border-primary bg-primary/5 text-primary" : "border-input hover:bg-muted text-muted-foreground"}`}
                     >
                       {opt.label}

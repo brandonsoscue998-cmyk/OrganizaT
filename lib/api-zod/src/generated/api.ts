@@ -24,7 +24,9 @@ export const RegisterBody = zod.object({
   email: zod.string().email(),
   password: zod.string().min(registerBodyPasswordMin),
   name: zod.string(),
-  role: zod.enum(["trainer", "client"]).optional(),
+  role: zod.enum(["trainer", "client", "owner"]).optional(),
+  spaceName: zod.string().optional(),
+  pricePerSlot: zod.string().optional(),
 });
 
 /**
@@ -42,7 +44,9 @@ export const LoginResponse = zod.object({
     email: zod.string(),
     name: zod.string(),
     username: zod.string().optional(),
-    role: zod.enum(["trainer", "client"]),
+    role: zod.enum(["trainer", "client", "owner"]),
+    spaceName: zod.string().optional(),
+    pricePerSlot: zod.string().optional(),
     createdAt: zod.coerce.date(),
   }),
 });
@@ -55,7 +59,9 @@ export const GetMeResponse = zod.object({
   email: zod.string(),
   name: zod.string(),
   username: zod.string().optional(),
-  role: zod.enum(["trainer", "client"]),
+  role: zod.enum(["trainer", "client", "owner"]),
+  spaceName: zod.string().optional(),
+  pricePerSlot: zod.string().optional(),
   createdAt: zod.coerce.date(),
 });
 
