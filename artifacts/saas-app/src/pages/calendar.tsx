@@ -21,7 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, ChevronLeft, ChevronRight, Trash2, Clock, Loader2, Check, X, RefreshCw } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Trash2, Clock, Loader2, Check, X, RefreshCw, Copy } from "lucide-react";
 import { locale, formatCurrency, t } from "@/lib/i18n";
 
 function toISODate(d: Date) {
@@ -152,9 +152,42 @@ export default function Calendar() {
     }
   };
 
+  // Copy-to-other-days state
+  const [copyPanelDate, setCopyPanelDate] = useState<string | null>(null);
+  const [copyTargetDays, setCopyTargetDays] = useState<string[]>([]);
+  const [copyLoading, setCopyLoading] = useState(false);
+
   const slotsByDay = (day: Date) => {
     const key = toISODate(day);
     return (slots ?? []).filter(s => s.date === key).sort((a, b) => a.startTime.localeCompare(b.startTime));
+  };
+
+  const handleCopyApply = async (sourceDateKey: string) => {
+    if (copyTargetDays.length === 0) return;
+    const sourceSlots = (slots ?? []).filter(s => s.date === sourceDateKey);
+    if (sourceSlots.length === 0) return;
+    setCopyLoading(true);
+    let created = 0;
+    let skipped = 0;
+    for (const targetDate of copyTargetDays) {
+      const existing = (slots ?? []).filter(s => s.date === targetDate);
+      for (const slot of sourceSlots) {
+        const duplicate = existing.some(e => e.startTime === slot.startTime && e.endTime === slot.endTime);
+        if (duplicate) { skipped++; continue; }
+        try {
+          await createAvailability.mutateAsync({ data: { date: targetDate, startTime: slot.startTime, endTime: slot.endTime, isRecurring: false } });
+          created++;
+        } catch { skipped++; }
+      }
+    }
+    await queryClient.invalidateQueries({ queryKey: getListAvailabilityQueryKey({ from, to }) });
+    setCopyLoading(false);
+    setCopyPanelDate(null);
+    setCopyTargetDays([]);
+    const msg = created > 0
+      ? `${created} horario${created !== 1 ? "s" : ""} copiado${created !== 1 ? "s" : ""}${skipped > 0 ? `, ${skipped} omitido${skipped !== 1 ? "s" : ""}` : ""}`
+      : "No se copiaron horarios (ya existían)";
+    toast({ title: msg });
   };
 
   const weekLabel = `${format(start, "d MMM", { locale })} – ${format(end, "d MMM yyyy", { locale })}`;
@@ -280,6 +313,60 @@ export default function Calendar() {
                           <Plus className="h-3 w-3" />
                           Añadir horario
                         </button>
+                      )}
+
+                      {/* Copy to other days button */}
+                      {!inlineForm && !pastDay && copyPanelDate !== dateKey && (
+                        <button
+                          onClick={() => { setCopyPanelDate(dateKey); setCopyTargetDays([]); }}
+                          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary hover:underline font-medium px-1 py-0.5"
+                        >
+                          <Copy className="h-3 w-3" />
+                          Copiar a otros días
+                        </button>
+                      )}
+
+                      {/* Copy panel */}
+                      {copyPanelDate === dateKey && (
+                        <div className="border border-dashed border-muted-foreground/30 rounded-lg bg-muted/30 p-2 space-y-2">
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Copiar a</p>
+                          <div className="space-y-1">
+                            {days.filter(d => toISODate(d) !== dateKey).map(d => {
+                              const dk = toISODate(d);
+                              const checked = copyTargetDays.includes(dk);
+                              return (
+                                <label key={dk} className="flex items-center gap-1.5 cursor-pointer select-none">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={e => setCopyTargetDays(prev => e.target.checked ? [...prev, dk] : prev.filter(x => x !== dk))}
+                                    className="h-3 w-3 accent-primary"
+                                  />
+                                  <span className="text-[11px] capitalize">{format(d, "EEE d MMM", { locale })}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                          <div className="flex gap-1.5 pt-0.5">
+                            <Button
+                              size="sm"
+                              className="h-6 text-[11px] flex-1 px-2"
+                              disabled={copyTargetDays.length === 0 || copyLoading}
+                              onClick={() => handleCopyApply(dateKey)}
+                            >
+                              {copyLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                              Aplicar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0 text-muted-foreground"
+                              onClick={() => { setCopyPanelDate(null); setCopyTargetDays([]); }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
                       )}
                     </>
                   )}
