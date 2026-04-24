@@ -27,7 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Calendar, ChevronRight, ChevronDown, Loader2, Package, Info } from "lucide-react";
+import { Plus, Trash2, Calendar, ChevronRight, ChevronDown, Loader2, Package, Info, MessageCircle } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { t, locale, formatCurrency, statusLabel } from "@/lib/i18n";
@@ -146,6 +146,17 @@ export default function Sessions() {
     return true;
   }) ?? [];
   const totalIsEmpty = !isLoading && sessions?.length === 0;
+
+  const handleRemind = (clientName: string, clientId: number | undefined) => {
+    const phone = clients?.find(c => c.id === clientId)?.phone ?? "";
+    const msg = `Hola ${clientName}! 👋\nTienes sesiones pendientes de pago conmigo 😊\nCuando puedas lo vemos, gracias!`;
+    if (phone) {
+      window.open(`https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`, "_blank");
+    } else {
+      navigator.clipboard.writeText(msg);
+      toast({ title: "Mensaje copiado al portapapeles" });
+    }
+  };
 
   const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
   const toggleClient = (key: string) =>
@@ -367,9 +378,10 @@ export default function Sessions() {
                   return (
                     <div key={group.key}>
                       {/* Client group header */}
-                      <button
+                      <div className="flex items-center">
+                      <div
                         onClick={() => toggleClient(group.key)}
-                        className="w-full flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors text-left"
+                        className="flex-1 flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors text-left cursor-pointer"
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="min-w-0">
@@ -411,11 +423,24 @@ export default function Sessions() {
                             </div>
                           </div>
                         </div>
-                        {isOpen
-                          ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-                          : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                        }
-                      </button>
+                        <div className="flex items-center shrink-0">
+                          {isOpen
+                            ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            : <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          }
+                        </div>
+                      </div>
+                      {group.pendingSessions > 0 && (
+                        <button
+                          onClick={() => handleRemind(group.clientName, group.clientId ?? undefined)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 mx-3 rounded-md text-xs font-medium text-muted-foreground border border-border hover:bg-muted hover:text-foreground transition-colors shrink-0"
+                          title={clients?.find(c => c.id === group.clientId)?.phone ? "Abrir WhatsApp" : "Copiar mensaje"}
+                        >
+                          <MessageCircle className="h-3 w-3" />
+                          {clients?.find(c => c.id === group.clientId)?.phone ? "Recordar pago" : "Copiar mensaje"}
+                        </button>
+                      )}
+                      </div>
 
                       {/* Expanded session rows */}
                       {isOpen && (
