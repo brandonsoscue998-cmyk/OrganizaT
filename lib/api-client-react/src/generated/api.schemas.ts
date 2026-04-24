@@ -61,6 +61,14 @@ export interface AuthResponse {
   user: User;
 }
 
+export type ClientPaymentMode =
+  (typeof ClientPaymentMode)[keyof typeof ClientPaymentMode];
+
+export const ClientPaymentMode = {
+  per_session: "per_session",
+  monthly: "monthly",
+} as const;
+
 export interface Client {
   id: number;
   userId: number;
@@ -72,9 +80,18 @@ export interface Client {
   totalSessions: number;
   remainingSessions: number;
   packPrice: number;
+  paymentMode: ClientPaymentMode;
   createdAt: string;
   updatedAt: string;
 }
+
+export type CreateClientBodyPaymentMode =
+  (typeof CreateClientBodyPaymentMode)[keyof typeof CreateClientBodyPaymentMode];
+
+export const CreateClientBodyPaymentMode = {
+  per_session: "per_session",
+  monthly: "monthly",
+} as const;
 
 export interface CreateClientBody {
   name: string;
@@ -86,7 +103,16 @@ export interface CreateClientBody {
   totalSessions?: number;
   /** @minimum 0 */
   packPrice?: number;
+  paymentMode?: CreateClientBodyPaymentMode;
 }
+
+export type UpdateClientBodyPaymentMode =
+  (typeof UpdateClientBodyPaymentMode)[keyof typeof UpdateClientBodyPaymentMode];
+
+export const UpdateClientBodyPaymentMode = {
+  per_session: "per_session",
+  monthly: "monthly",
+} as const;
 
 export interface UpdateClientBody {
   name?: string;
@@ -100,6 +126,7 @@ export interface UpdateClientBody {
   remainingSessions?: number;
   /** @minimum 0 */
   packPrice?: number;
+  paymentMode?: UpdateClientBodyPaymentMode;
 }
 
 export type SessionStatus = (typeof SessionStatus)[keyof typeof SessionStatus];

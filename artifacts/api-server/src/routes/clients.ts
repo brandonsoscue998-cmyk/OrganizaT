@@ -30,7 +30,7 @@ router.post("/clients", async (req, res): Promise<void> => {
     return;
   }
 
-  const { totalSessions = 0, packPrice = 0, ...rest } = parsed.data;
+  const { totalSessions = 0, packPrice = 0, paymentMode = "per_session", ...rest } = parsed.data;
 
   if (totalSessions < 0) {
     res.status(400).json({ error: "totalSessions must be >= 0" });
@@ -49,6 +49,7 @@ router.post("/clients", async (req, res): Promise<void> => {
       totalSessions,
       remainingSessions: totalSessions,
       packPrice: String(packPrice),
+      paymentMode,
     })
     .returning();
 
@@ -104,6 +105,7 @@ router.patch("/clients/:id", async (req, res): Promise<void> => {
   if (parsed.data.phone !== undefined) updateData.phone = parsed.data.phone;
   if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes;
   if (parsed.data.packPrice !== undefined) updateData.packPrice = String(parsed.data.packPrice);
+  if (parsed.data.paymentMode !== undefined) updateData.paymentMode = parsed.data.paymentMode;
 
   if (parsed.data.totalSessions !== undefined) {
     const [current] = await db

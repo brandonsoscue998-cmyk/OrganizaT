@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, ChevronRight, Users, Package } from "lucide-react";
 import { Loader2 } from "lucide-react";
@@ -30,6 +31,7 @@ const clientSchema = z.object({
   notes: z.string().optional().nullable(),
   totalSessions: z.coerce.number().min(0, t.clients.packSessionsMin).default(0),
   packPrice: z.coerce.number().min(0, t.clients.packPriceMin).default(0),
+  paymentMode: z.enum(["per_session", "monthly"]).default("per_session"),
 });
 
 type ClientForm = z.infer<typeof clientSchema>;
@@ -42,9 +44,9 @@ export default function Clients() {
   const createClient = useCreateClient();
   const deleteClient = useDeleteClient();
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<ClientForm>({
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<ClientForm>({
     resolver: zodResolver(clientSchema),
-    defaultValues: { totalSessions: 0, packPrice: 0 },
+    defaultValues: { totalSessions: 0, packPrice: 0, paymentMode: "per_session" },
   });
 
   const isEmpty = !isLoading && clients?.length === 0;
@@ -57,6 +59,7 @@ export default function Clients() {
         notes: data.notes ?? null,
         totalSessions: data.totalSessions,
         packPrice: data.packPrice,
+        paymentMode: data.paymentMode,
       }
     });
     queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
@@ -105,6 +108,19 @@ export default function Clients() {
                 <div className="space-y-1.5">
                   <Label htmlFor="notes">{t.clients.notes} <span className="text-muted-foreground">{t.clients.notesOptional}</span></Label>
                   <Textarea id="notes" placeholder={t.clients.notesPlaceholder} {...register("notes")} rows={3} />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Modo de pago</Label>
+                  <Select value={watch("paymentMode")} onValueChange={v => setValue("paymentMode", v as "per_session" | "monthly")}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="per_session">Por sesión</SelectItem>
+                      <SelectItem value="monthly">Mensual</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="border rounded-lg p-3 space-y-3 bg-muted/30">

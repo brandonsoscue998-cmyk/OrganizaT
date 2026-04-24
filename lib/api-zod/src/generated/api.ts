@@ -77,6 +77,7 @@ export const ListClientsResponseItem = zod.object({
   totalSessions: zod.number(),
   remainingSessions: zod.number(),
   packPrice: zod.number(),
+  paymentMode: zod.enum(["per_session", "monthly"]),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -95,6 +96,7 @@ export const CreateClientBody = zod.object({
   notes: zod.string().nullish(),
   totalSessions: zod.number().min(createClientBodyTotalSessionsMin).optional(),
   packPrice: zod.number().min(createClientBodyPackPriceMin).optional(),
+  paymentMode: zod.enum(["per_session", "monthly"]).optional(),
 });
 
 /**
@@ -113,6 +115,7 @@ export const GetClientResponse = zod.object({
   totalSessions: zod.number(),
   remainingSessions: zod.number(),
   packPrice: zod.number(),
+  paymentMode: zod.enum(["per_session", "monthly"]),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -140,6 +143,7 @@ export const UpdateClientBody = zod.object({
     .min(updateClientBodyRemainingSessionsMin)
     .optional(),
   packPrice: zod.number().min(updateClientBodyPackPriceMin).optional(),
+  paymentMode: zod.enum(["per_session", "monthly"]).optional(),
 });
 
 export const UpdateClientResponse = zod.object({
@@ -151,6 +155,7 @@ export const UpdateClientResponse = zod.object({
   totalSessions: zod.number(),
   remainingSessions: zod.number(),
   packPrice: zod.number(),
+  paymentMode: zod.enum(["per_session", "monthly"]),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });

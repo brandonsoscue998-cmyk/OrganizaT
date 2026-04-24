@@ -13,6 +13,7 @@ export const clientsTable = pgTable("clients", {
   remainingSessions: integer("remaining_sessions").notNull().default(0),
   packPrice: numeric("pack_price", { precision: 10, scale: 2 }).notNull().default("0"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  paymentMode: text("payment_mode").notNull().default("per_session"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
 

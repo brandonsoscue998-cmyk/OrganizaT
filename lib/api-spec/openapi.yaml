@@ -646,6 +646,9 @@ components:
           type: integer
         packPrice:
           type: number
+        paymentMode:
+          type: string
+          enum: ["per_session", "monthly"]
         createdAt:
           type: string
           format: date-time
@@ -659,6 +662,7 @@ components:
         - totalSessions
         - remainingSessions
         - packPrice
+        - paymentMode
         - createdAt
         - updatedAt
 
@@ -677,6 +681,9 @@ components:
         packPrice:
           type: number
           minimum: 0
+        paymentMode:
+          type: string
+          enum: ["per_session", "monthly"]
       required:
         - name
 
@@ -698,6 +705,9 @@ components:
         packPrice:
           type: number
           minimum: 0
+        paymentMode:
+          type: string
+          enum: ["per_session", "monthly"]
 
     Session:
       type: object

@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Phone, StickyNote, Calendar, Package, Pencil, Loader2 } from "lucide-react";
 import { Link } from "wouter";
@@ -135,6 +136,25 @@ export default function ClientDetail() {
                     <span className="whitespace-pre-wrap">{client.notes}</span>
                   </div>
                 ) : null}
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground shrink-0">Modo de pago:</span>
+                  <Select
+                    value={client?.paymentMode ?? "per_session"}
+                    onValueChange={async (v) => {
+                      await updateClient.mutateAsync({ id, data: { paymentMode: v as "per_session" | "monthly" } });
+                      queryClient.invalidateQueries({ queryKey: getGetClientQueryKey(id) });
+                      queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() });
+                    }}
+                  >
+                    <SelectTrigger className="h-7 text-xs w-36">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="per_session">Por sesión</SelectItem>
+                      <SelectItem value="monthly">Mensual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </>
             )}
           </CardContent>
